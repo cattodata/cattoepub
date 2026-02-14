@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CattoEPUB — PDF to EPUB Converter (Thai)</title>
 <meta name="description" content="แปลง PDF เป็น EPUB ด้วย Typhoon OCR — รองรับภาษาไทย ทำงานในเบราว์เซอร์">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>">
+<link rel="icon" href="cattodata.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6FA8DD">
 <!-- Google AdSense -->
@@ -78,7 +78,7 @@
 [data-theme="dark"] .epub-resume{background:linear-gradient(135deg,#422006,#78350f);border-color:#92400e;color:#fbbf24}
 [data-theme="dark"] .epub-resume .ep-desc{color:#d97706}
 
-html{font-size:15px;scroll-behavior:smooth}
+html{font-size:16px;scroll-behavior:smooth}
 body{
   font-family:'Poppins','Kanit',system-ui,sans-serif;
   background:linear-gradient(135deg,#E8F4FF 0%,#D8EBFF 25%,#C8E2FF 50%,#B8D9FF 75%,#A8D0FF 100%);
@@ -456,7 +456,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
 <header class="hero">
   <div class="hero-in">
     <div class="hero-title-row">
-      <img src="rainflow.png" alt="rainflowData" class="hero-avatar">
+      <img src="cattodata.png" alt="cattodata" class="hero-avatar">
       <h1>🐱 Catto<span>EPUB</span> 📘</h1>
     </div>
     <p class="hero-desc">PDF to EPUB Converter (Thai)<br>แปลง PDF เป็น EPUB ด้วย Typhoon OCR — ทำงานในเบราว์เซอร์ ไม่ต้องติดตั้ง</p>
@@ -866,8 +866,8 @@ async function showPdfPreview(){
 /* ═══ Notification helper ═══ */
 function sendNotif(title,body){
   if(!('Notification' in window))return;
-  if(Notification.permission==='granted'){new Notification(title,{body:body,icon:'rainflow.png'})}
-  else if(Notification.permission!=='denied'){Notification.requestPermission().then(function(p){if(p==='granted')new Notification(title,{body:body,icon:'rainflow.png'})})}
+  if(Notification.permission==='granted'){new Notification(title,{body:body,icon:'cattodata.png'})}
+  else if(Notification.permission!=='denied'){Notification.requestPermission().then(function(p){if(p==='granted')new Notification(title,{body:body,icon:'cattodata.png'})})}
 }
 
 $('tut-tog').onclick=()=>$('tut').classList.toggle('open');
