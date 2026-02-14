@@ -2,7 +2,8 @@
 
 แปลง PDF เป็น EPUB ด้วย Typhoon OCR / Gemini Flash + แปลหนังสือ AI (EN↔TH) — ทำงานในเบราว์เซอร์ ไม่ต้องติดตั้ง
 
-🔗 **เข้าใช้ได้ที่:** [https://rainflowdata.github.io/PDF-EPUB-Converter-Thai](https://rainflowdata.github.io/PDF-EPUB-Converter-Thai/)
+🔗 **เข้าใช้ได้ที่:** [https://cattodata.github.io/cattoepub/](https://cattodata.github.io/cattoepub/)  
+📦 **GitHub Repository:** [https://github.com/cattodata/cattoepub](https://github.com/cattodata/cattoepub)
 
 ![Client-Side](https://img.shields.io/badge/Client--Side-JavaScript-yellow)
 ![Thai OCR](https://img.shields.io/badge/Thai%20OCR-Typhoon-blue)
@@ -30,8 +31,8 @@
 - ใช้ `typhoon-ocr` library + Gradio UI
 - ทำงานบน Google Colab (ต้องรัน Python)
 
-### Web Version: by rainflowData
-**rainflowData** นำไอเดียมาสร้างเป็น **เว็บแอป** ที่ทำงานได้ในเบราว์เซอร์โดยตรง ไม่ต้องติดตั้งอะไร และเพิ่มฟีเจอร์ใหม่ๆ มากมาย รวมถึงหน้าแปลหนังสือด้วย AI ในชื่อ **CattoEPUB** + **CattoTranslate**
+### Web Version: by cattoData
+**cattoData** นำไอเดียมาสร้างเป็น **เว็บแอป** ที่ทำงานได้ในเบราว์เซอร์โดยตรง ไม่ต้องติดตั้งอะไร และเพิ่มฟีเจอร์ใหม่ๆ มากมาย รวมถึงหน้าแปลหนังสือด้วย AI ในชื่อ **CattoEPUB** + **CattoTranslate**
 
 ---
 
@@ -217,7 +218,7 @@ epub_convert/
 ## 🙏 Credits
 
 - **Ken Takahashi** — ไอเดียและ Colab ต้นฉบับ ([Facebook](https://www.facebook.com/groups/ebookreader/posts/25556985560668239) · [Colab](https://colab.research.google.com/drive/1lgmYkuEeSUlVDLpplXCnFIQdJP9YMWjw?usp=sharing))
-- **rainflowData** — Web adaptation + ฟีเจอร์เพิ่มเติมทั้งหมด
+- **cattoData** — Web adaptation + ฟีเจอร์เพิ่มเติมทั้งหมด
 - **Typhoon** by [SCB 10X](https://opentyphoon.ai) — Thai OCR & Translation API
 - **Gemini Flash** by [Google](https://aistudio.google.com/apikey) — Free AI API
 - แชร์ใน [ชุมชนนักอ่าน eBook](https://www.facebook.com/groups/778412228952249/)
