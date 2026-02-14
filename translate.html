@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CattoTranslate — AI Book Translator</title>
+<meta name="description" content="แปลหนังสือ PDF/EPUB ด้วย AI — แปลภาษา EN↔TH พร้อมจัดรูปแบบสวย ออก EPUB">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6FA8DD">
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4625693104435293" crossorigin="anonymous"></script>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DBTHGF25YB"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DBTHGF25YB');</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#f8fafc;--bg2:#f1f5f9;--white:#ffffff;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --blue:#3b82f6;--blue-d:#2563eb;--blue-l:#dbeafe;--blue-xl:#eff6ff;
+  --green:#10b981;--green-l:#d1fae5;
+  --red:#ef4444;--red-l:#fee2e2;
+  --amber:#f59e0b;--amber-l:#fef3c7;
+  --purple:#8b5cf6;--purple-l:#ede9fe;--purple-d:#7c3aed;
+  --r:10px;--r2:14px;--r3:20px;
+}
+[data-theme="dark"]{
+  --bg:#0c0a09;--bg2:#1c1917;--white:#1c1917;
+  --border:#292524;--border2:#44403c;
+  --text:#fafaf9;--text2:#a8a29e;--text3:#78716c;
+  --blue:#60a5fa;--blue-d:#93bbfd;--blue-l:#1e3a5f;--blue-xl:#172554;
+  --green:#34d399;--green-l:#064e3b;
+  --red:#f87171;--red-l:#7f1d1d;
+  --amber:#fbbf24;--amber-l:#78350f;
+  --purple:#a78bfa;--purple-l:#2e1065;--purple-d:#c4b5fd;
+}
+[data-theme="dark"] .hero{background:linear-gradient(135deg,#1e3a5f 0%,#2d4a7c 50%,#1e3a5f 100%);box-shadow:0 8px 30px rgba(30,58,95,0.4)}
+[data-theme="dark"] .hero::before{background:radial-gradient(ellipse at 20% 80%,rgba(139,92,246,.08) 0%,transparent 50%)}
+[data-theme="dark"] .hero::after{background:radial-gradient(ellipse at 80% 20%,rgba(56,189,248,.06) 0%,transparent 50%)}
+[data-theme="dark"] body{background:#0c0a09}
+[data-theme="dark"] .tag{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.7)}
+
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:'Poppins','Kanit',system-ui,sans-serif;background:linear-gradient(135deg,#E8F4FF 0%,#D8EBFF 25%,#C8E2FF 50%,#B8D9FF 75%,#A8D0FF 100%);background-attachment:fixed;color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* ═══ HERO ═══ */
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+.hero{
+  background:linear-gradient(135deg,#8BB8E8 0%,#6FA8DD 50%,#5599CC 100%);
+  border-bottom:none;
+  box-shadow:0 8px 30px rgba(85,153,204,0.3);
+  padding:3rem 1.25rem 2.5rem;position:relative;overflow:hidden;
+  border-radius:0 0 24px 24px;
+}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 80%,rgba(255,255,255,.15) 0%,transparent 50%);pointer-events:none}
+.hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(255,255,255,.1) 0%,transparent 50%);pointer-events:none}
+.hero-in{max-width:640px;margin:0 auto;text-align:center;position:relative;z-index:1}
+.hero-title-row{display:inline-flex;align-items:center;gap:.7rem;justify-content:center;margin-bottom:.35rem}
+.hero-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.4);background:transparent;filter:drop-shadow(0 4px 15px rgba(0,0,0,.15));flex-shrink:0;transition:transform .3s ease}
+.hero-avatar:hover{transform:scale(1.08)}
+.hero h1{font-family:'Poppins','Kanit',sans-serif;font-size:2.2rem;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.2;margin-bottom:.35rem;text-shadow:1px 1px 3px rgba(0,0,0,0.15)}
+.hero h1 span{color:rgba(255,255,255,.95)}
+.hero-desc{font-size:.88rem;color:rgba(255,255,255,0.9);line-height:1.7;margin-bottom:1.2rem;font-weight:400}
+.tags{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap}
+.tag{font-size:.68rem;font-weight:600;padding:.3rem .7rem;border-radius:20px;background:rgba(255,255,255,.25);color:#fff;display:inline-flex;align-items:center;gap:.3rem;border:1px solid rgba(255,255,255,.35);box-shadow:0 2px 8px rgba(85,153,204,0.15);backdrop-filter:blur(4px);transition:all .2s}
+.tag:hover{background:rgba(255,255,255,.4);color:#fff}
+
+/* Nav pill */
+.nav-pill{display:inline-flex;gap:.3rem;margin-top:.8rem;padding:.25rem;background:rgba(255,255,255,.3);border-radius:25px;border:1px solid rgba(255,255,255,.4);backdrop-filter:blur(4px)}
+.nav-pill a{font-size:.7rem;font-weight:600;padding:.3rem .8rem;border-radius:20px;text-decoration:none;color:rgba(255,255,255,.7);transition:all .2s}
+.nav-pill a.active{background:#fff;color:#5599CC;box-shadow:0 2px 8px rgba(85,153,204,0.2)}
+.nav-pill a:hover:not(.active){background:rgba(255,255,255,.3);color:#fff}
+[data-theme="dark"] .nav-pill{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.1)}
+[data-theme="dark"] .nav-pill a.active{background:rgba(255,255,255,.15);color:#fff}
+
+/* ═══ LAYOUT ═══ */
+.wrap{max-width:640px;margin:0 auto;padding:1.25rem 1rem 3rem}
+
+/* ═══ CARD ═══ */
+.card{background:var(--white);border:2px solid #E0E7FF;border-radius:var(--r3);padding:1.25rem;margin-bottom:.6rem;transition:all .2s;box-shadow:0 4px 15px rgba(107,143,216,0.12);animation:slideUp 0.6s ease-out}
+.card:hover{box-shadow:0 8px 25px rgba(107,143,216,0.18);border-color:#c7d2fe}
+.card-h{display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem}
+.card-n{width:22px;height:22px;border-radius:6px;flex-shrink:0;background:var(--blue);color:white;font-family:'Poppins',sans-serif;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.card-t{font-family:'Poppins','Kanit',sans-serif;font-size:.88rem;font-weight:600}
+
+/* ═══ FORM ═══ */
+.f{margin-bottom:.7rem}.f:last-child{margin-bottom:0}
+.fl{display:block;font-size:.7rem;font-weight:600;color:var(--text2);margin-bottom:.25rem;letter-spacing:.02em}
+.fi{width:100%;padding:.5rem .65rem;background:var(--white);border:1px solid var(--border);border-radius:var(--r);font-family:inherit;font-size:.84rem;color:var(--text);outline:none;transition:all .2s}
+.fi:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
+.fi::placeholder{color:var(--text3)}
+textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+
+/* ═══ UPLOAD ═══ */
+.up{border:1.5px dashed var(--border2);border-radius:var(--r2);padding:1.5rem 1rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--white)}
+.up:hover,.up.drag{border-style:solid;background:var(--blue-xl);border-color:var(--blue)}
+.up.ok{border-color:var(--green);border-style:solid;background:var(--green-l)}
+.up .ui{font-size:1.5rem;display:block;margin-bottom:.2rem}
+.up .ut{font-size:.84rem;color:var(--text2)}.up .ut b{color:var(--text);font-weight:500}
+.up .uh{font-size:.68rem;color:var(--text3);margin-top:.15rem}
+.up .uf{font-size:.78rem;color:var(--green);font-weight:500;margin-top:.25rem}
+
+/* Cover */
+.cov{width:100px;height:140px;border:1.5px dashed var(--border2);border-radius:var(--r);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;background:var(--white);overflow:hidden;position:relative}
+.cov:hover{border-style:solid;background:var(--blue-xl);border-color:var(--blue)}
+.cov.ok{border-style:solid;border-color:var(--green)}
+.cov img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1}
+.cov-ph{text-align:center;font-size:.62rem;color:var(--text3)}
+.cov-ph span{font-size:1.2rem;display:block;margin-bottom:.1rem}
+.cov.ok .cov-ph{display:none}
+.mflex{display:flex;gap:.75rem;align-items:flex-start}
+.mfields{flex:1;min-width:0}
+
+/* ═══ LANG DIR ═══ */
+.lang-dir{display:flex;align-items:center;gap:.4rem;justify-content:center;margin:.5rem 0}
+.lang-box{padding:.5rem 1rem;background:var(--white);border:1px solid var(--border);border-radius:var(--r);font-size:.9rem;font-weight:700;color:var(--text);min-width:80px;text-align:center}
+.lang-swap{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--green);color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
+.lang-swap:hover{transform:rotate(180deg);box-shadow:0 2px 8px rgba(16,185,129,0.2)}
+
+/* ═══ BUTTONS ═══ */
+.brow{display:flex;gap:.4rem;margin:.6rem 0}
+.btn{padding:.55rem 1rem;border:1px solid var(--border);border-radius:var(--r);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.3rem;box-shadow:0 1px 2px rgba(0,0,0,0.05);letter-spacing:-.01em}
+.btn-go{background:var(--blue);color:white;flex:1;justify-content:center;border-color:transparent}
+.btn-go:hover:not(:disabled){background:var(--blue-d);box-shadow:0 2px 8px rgba(59,130,246,0.25)}
+.btn-go:disabled{opacity:.4;cursor:not-allowed}
+.btn-st{background:var(--white);border:1px solid var(--border);color:var(--red)}
+.btn-st:hover:not(:disabled){box-shadow:0 2px 8px rgba(239,68,68,0.15);border-color:var(--red)}
+.btn-st:disabled{opacity:.3;cursor:not-allowed}
+.btn-o{background:var(--white);border:1px solid var(--border);color:var(--text2);font-size:.72rem;padding:.35rem .6rem;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.btn-o:hover{box-shadow:0 2px 6px rgba(0,0,0,0.08);border-color:var(--border2)}
+
+/* ═══ PROGRESS ═══ */
+.prg{display:none;margin-bottom:.6rem}.prg.on{display:block}
+.prg-box{background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:.85rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.prg-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem}
+.prg-t{font-size:.78rem;color:var(--text2)}
+.prg-p{font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.prg-track{height:14px;background:var(--bg2);border-radius:7px;overflow:hidden;border:1px solid var(--border)}
+.prg-bar{height:100%;border-radius:0;width:0%;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);transition:width .3s;box-shadow:inset 0 1px 2px rgba(255,255,255,0.2)}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.5}}
+.prg.run .prg-t{animation:pl 1.5s infinite}
+
+/* ═══ STATUS ═══ */
+.sts{padding:.6rem .85rem;border-radius:var(--r);font-size:.78rem;display:none;margin-bottom:.6rem;border:1px solid;font-weight:600}
+.sts.info{display:block;background:var(--blue-xl);border-color:var(--border);color:var(--blue-d)}
+.sts.err{display:block;background:var(--red-l);border-color:var(--red);color:var(--red)}
+.sts.ok{display:block;background:var(--green-l);border-color:var(--green);color:#059669}
+
+/* ═══ RESULTS ═══ */
+.res{display:none}.res.on{display:block}
+.dlg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.dlc{display:flex;align-items:center;gap:.6rem;padding:.7rem .85rem;background:var(--white);border:1px solid var(--border);border-radius:var(--r2);cursor:pointer;transition:all .15s;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.dlc:hover{box-shadow:0 3px 10px rgba(0,0,0,0.1);border-color:var(--border2)}
+.dli{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.dli.epub{background:var(--green-l);color:var(--green)}
+.dli.txt{background:var(--amber-l);color:var(--amber)}
+.dln{font-size:.8rem;font-weight:600}
+.dls{font-size:.64rem;color:var(--text3);margin-top:.08rem}
+
+/* ═══ TOC ═══ */
+.toc{display:none;margin-bottom:.6rem}.toc.on{display:block}
+.tocl{list-style:none}
+.toci{display:flex;align-items:center;gap:.4rem;padding:.35rem .4rem;border-radius:6px;font-size:.78rem;border-bottom:1px solid var(--bg)}
+.toci:hover{background:var(--bg)}
+.toci .tn{font-size:.62rem;color:var(--text3);font-weight:700;min-width:24px}
+.toci input{flex:1;padding:.2rem .35rem;font-size:.78rem;border:1px solid var(--border);border-radius:5px;font-family:inherit;background:var(--white);color:var(--text);outline:none;transition:all .2s}
+.toci input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
+.toci .tp{font-size:.66rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.toci .tx{cursor:pointer;color:var(--text3);font-size:.68rem;padding:.15rem .2rem;border-radius:4px;transition:all .12s}
+.toci .tx:hover{color:var(--red);background:var(--red-l)}
+.toca{display:flex;gap:.3rem;margin-top:.4rem}
+
+/* ═══ SIDE-BY-SIDE PREVIEW ═══ */
+.compare{display:none;margin-top:.6rem}.compare.on{display:block}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-top:.3rem}
+.compare-col{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.5rem .6rem;max-height:300px;overflow-y:auto;font-size:.74rem;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.compare-col.src{color:var(--text3);border-left:2px solid var(--amber)}
+.compare-col.tgt{color:var(--text);border-left:2px solid var(--purple)}
+.compare-hdr{display:flex;gap:.3rem;margin-bottom:.2rem}
+.compare-hdr span{font-size:.62rem;font-weight:600;padding:.15rem .5rem;border-radius:100px}
+.compare-hdr .h-src{background:var(--amber-l);color:var(--amber)}
+.compare-hdr .h-tgt{background:var(--purple-l);color:var(--purple)}
+.compare-nav{display:flex;align-items:center;gap:.4rem;margin-top:.3rem;justify-content:center}
+.compare-nav button{padding:.25rem .6rem;border:1px solid var(--border);background:var(--white);border-radius:var(--r);cursor:pointer;font-size:.7rem;color:var(--text2);transition:all .2s}
+.compare-nav button:hover{box-shadow:0 2px 6px rgba(0,0,0,0.08);border-color:var(--border2)}
+.compare-nav span{font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+/* ═══ LOG ═══ */
+.ct{display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--text3);cursor:pointer;padding:.3rem 0;user-select:none}
+.ct:hover{color:var(--text2)}
+.ct .a{transition:transform .15s;font-size:.5rem}.ct.open .a{transform:rotate(90deg)}
+.cb{display:none}.cb.open{display:block}
+.logb{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.4rem .6rem;max-height:160px;overflow-y:auto;margin-top:.2rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;line-height:1.75;color:var(--text3)}
+.ll{border-bottom:1px solid var(--bg2);padding:.04rem 0}.ll:last-child{border:none}
+.ll .t{color:var(--border2);margin-right:.25rem}
+.ll.e{color:var(--red)}.ll.s{color:var(--green)}
+
+/* Cost bar */
+.cost-bar{display:none;margin:.4rem 0;padding:.55rem .8rem;background:var(--purple-l);border:1px solid var(--border);border-radius:var(--r);font-size:.72rem;color:var(--text2);line-height:1.5;font-weight:600}
+.cost-bar b{color:var(--text)}
+
+/* ═══ Edit Modal ═══ */
+.edt-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.edt-overlay.on{display:flex}
+.edt-box{background:var(--white);border-radius:var(--r3);padding:1.25rem;width:92%;max-width:600px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,0.12);border:1px solid var(--border)}
+.edt-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.edt-head h3{font-size:.88rem;font-weight:600;font-family:'Poppins','Kanit',sans-serif}
+.edt-close{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--text3);transition:all .2s}
+.edt-close:hover{color:var(--red);border-color:var(--red)}
+.edt-ta{flex:1;width:100%;padding:.6rem;border:1px solid var(--border);border-radius:var(--r);font-family:'Kanit',sans-serif;font-size:.82rem;line-height:1.8;color:var(--text);background:var(--bg);resize:none;outline:none;min-height:200px;transition:all .2s}
+.edt-ta:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
+.edt-foot{display:flex;gap:.3rem;margin-top:.5rem;justify-content:flex-end}
+
+/* ═══ Glossary ═══ */
+.gloss{margin-bottom:.6rem}
+.gloss-pairs{max-height:120px;overflow-y:auto;margin-bottom:.3rem}
+.gloss-row{display:flex;gap:.3rem;margin-bottom:.2rem;align-items:center}
+.gloss-row input{flex:1;padding:.25rem .4rem;font-size:.72rem;border:1px solid var(--border);border-radius:5px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;transition:all .2s}
+.gloss-row input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,0.08)}
+.gloss-row .gx{cursor:pointer;color:var(--text3);font-size:.62rem;padding:.15rem .2rem;border-radius:4px}
+.gloss-row .gx:hover{color:var(--red);background:var(--red-l)}
+.gloss-arrow{font-size:.72rem;color:var(--text3)}
+
+/* ═══ EPUB Reader ═══ */
+.reader-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
+.reader-overlay.on{display:flex}
+.reader-box{background:var(--white);border-radius:var(--r3);width:94%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,0.12);border:1px solid var(--border)}
+.reader-head{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--border)}
+.reader-head h3{font-size:.88rem;font-weight:700}
+.reader-body{flex:1;overflow-y:auto;padding:1rem 1.25rem;font-size:.84rem;line-height:1.9;color:var(--text)}
+.reader-body h1,.reader-body h2,.reader-body h3{margin:1em 0 .4em;font-family:'Poppins','Kanit',sans-serif}
+.reader-nav{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.6rem;border-top:1px solid var(--border)}
+
+/* ═══ Stats Total ═══ */
+.ustats{font-size:.6rem;color:var(--text3);text-align:center;margin-top:.3rem;padding:.3rem;background:var(--bg);border-radius:var(--r);border:1px solid var(--border)}
+
+/* ═══ Recovery Box ═══ */
+.recbox{display:none;margin-bottom:.6rem;padding:.85rem 1rem;background:var(--amber-l);border:1px solid var(--amber);border-radius:var(--r2)}
+.recbox.on{display:block}
+.recbox .rec-info{font-size:.74rem;color:var(--text);line-height:1.6;margin-bottom:.5rem}
+.recbox .rec-info b{color:var(--amber)}
+.recbox .rec-btns{display:flex;gap:.3rem;flex-wrap:wrap}
+.recbox .rec-btns button{padding:.35rem .65rem;border:1px solid var(--border);border-radius:var(--r);font-family:inherit;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.25rem}
+.recbox .rb-build{background:var(--amber);color:white;border-color:transparent}
+.recbox .rb-build:hover{background:#d97706}
+.recbox .rb-resume{background:var(--green);color:white;border-color:transparent}
+.recbox .rb-resume:hover{background:#059669}
+.recbox .rb-export{background:var(--white);color:var(--text2)}
+.recbox .rb-export:hover{background:var(--bg)}
+.recbox .rb-import{background:var(--white);color:var(--text2)}
+.recbox .rb-import:hover{background:var(--bg)}
+.recbox .rb-del{background:var(--white);border:1px solid var(--red);color:var(--red)}
+.recbox .rb-del:hover{background:var(--red-l)}
+
+/* Stats bar */
+.statbar{display:none;margin-bottom:.6rem}.statbar.on{display:block}
+.statbar .sb-row{display:flex;gap:.4rem;flex-wrap:wrap}
+.statbar .sb-item{flex:1;min-width:80px;padding:.4rem .6rem;background:var(--white);border:1px solid var(--border);border-radius:var(--r);text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.statbar .sb-val{font-size:.82rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.statbar .sb-lbl{font-size:.58rem;color:var(--text3);margin-top:.05rem}
+
+/* Dark Mode Toggle */
+.dm-btn{position:fixed;top:.7rem;right:.7rem;z-index:99;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:all .2s}
+.dm-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,0.12);border-color:var(--border2)}
+
+.foot{text-align:center;padding:1.25rem 0;margin-top:1.25rem;font-size:.62rem;color:var(--text3);border-top:1px solid var(--border)}
+.foot a{color:var(--purple);text-decoration:none}.foot a:hover{text-decoration:underline}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+@media(max-width:640px){
+  .hero h1{font-size:1.7rem}
+  .hero{padding:2rem 1rem 1.5rem}
+  .hero-desc{font-size:.82rem}
+  .hero-avatar{width:48px;height:48px}
+  .wrap{padding:1rem .75rem 2rem}
+  .card{padding:1rem}
+  .g2,.g3,.dlg{grid-template-columns:1fr}
+  .compare-grid{grid-template-columns:1fr}
+  .compare-hdr{flex-direction:column;gap:.3rem}
+  .mflex{flex-direction:column;align-items:center}
+  .brow{flex-direction:column}
+  .btn-go,.btn{width:100%;justify-content:center}
+  .tags{gap:.3rem}.tag{font-size:.56rem;padding:.2rem .5rem}
+  .nav-pill{flex-direction:column;gap:.3rem}
+  .nav-pill a{font-size:.72rem;padding:.4rem .8rem}
+  .lang-dir{flex-direction:column;gap:.4rem;align-items:stretch}
+  .lang-box{min-width:auto;width:100%}
+  .lang-swap{align-self:center;transform:rotate(90deg)}
+  .sb-row{gap:.25rem;flex-wrap:wrap}
+  .sb-item{min-width:60px;padding:.3rem .4rem}
+  .sb-val{font-size:.72rem}
+  .sb-lbl{font-size:.52rem}
+  .dm-btn{width:36px;height:36px;font-size:1rem}
+  .foot{font-size:.62rem;padding:1.5rem .75rem}
+  .dlc{padding:.6rem}
+  .rec-btns{flex-direction:column}
+  .rec-btns button{width:100%;justify-content:center}
+  .reader-box{width:95vw;height:90vh}
+  .edt-box{width:95vw}
+}
+</style>
+</head>
+<body>
+
+<button class="dm-btn" id="dmBtn" title="Dark/Light Mode">🌙</button>
+<button class="dm-btn" id="langBtn" title="Language" style="right:3.2rem;font-size:.7rem;font-weight:700">TH</button>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="hero-title-row">
+      <img src="rainflow.png" alt="rainflowData" class="hero-avatar">
+      <h1>🐱 Catto<span>Translate</span> 🌐</h1>
+    </div>
+    <p class="hero-desc" id="heroDesc">AI Book Translator<br>แปลหนังสือ PDF/EPUB ด้วย AI — แปลภาษา EN↔TH พร้อมจัดรูปแบบสวย</p>
+    <div class="tags">
+      <span class="tag" id="tagMulti">🌐 EN ↔ TH</span>
+      <span class="tag" id="tagInput">📄 PDF + EPUB Input</span>
+      <span class="tag" id="tagOutput">📘 EPUB Output</span>
+      <span class="tag" id="tagClient">⚡ Client-Side</span>
+    </div>
+    <div class="nav-pill">
+      <a href="index.html">🐱 CattoEPUB</a>
+      <a href="translate.html" class="active">🐱 CattoTranslate</a>
+    </div>
+    <p style="font-size:.78rem;color:rgba(255,255,255,0.9);margin-top:.75rem;line-height:1.6">Web version by <strong style="color:#fff">cattoData</strong></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Card 1: Upload -->
+  <div class="card">
+    <div class="card-h"><div class="card-n">1</div><div class="card-t" id="card1Title">อัปโหลดหนังสือ</div></div>
+    <div class="up" id="dz">
+      <span class="ui">📄</span>
+      <div class="ut" id="dzText"><b>คลิกเลือกไฟล์</b> หรือลากมาวาง</div>
+      <div class="uh" id="dzHint">รองรับ .pdf และ .epub</div>
+      <div class="uf" id="fn" style="display:none"></div>
+      <input type="file" id="fi" accept=".pdf,.epub" hidden>
+    </div>
+
+    <!-- PDF page preview -->
+    <div id="pdfPv" style="display:none;margin-top:.4rem;padding:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);text-align:center">
+      <canvas id="pdfPvC"></canvas>
+      <div id="pdfPvI" style="font-size:.66rem;color:var(--text3);margin-top:.3rem"></div>
+    </div>
+
+    <!-- Source info -->
+    <div id="srcInfo" style="display:none;margin-top:.4rem;padding:.5rem .8rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:.72rem;color:var(--text2)"></div>
+  </div>
+
+  <!-- Card 2: Translation Settings -->
+  <div class="card">
+    <div class="card-h"><div class="card-n">2</div><div class="card-t" id="card2Title">ตั้งค่าการแปล</div></div>
+
+    <div class="f"><label class="fl" id="ak-lbl">API Key</label><input class="fi" id="ak" type="password" placeholder="Typhoon/Gemini API Key"></div>
+    <div class="f"><label class="fl">AI Provider</label><select class="fi" id="prov" style="cursor:pointer">
+      <option value="typhoon">🇹🇭 Typhoon V2 (Thai เก่ง)</option>
+      <option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option>
+    </select></div>
+    <div id="typhoonWarn" style="display:none;margin:-.2rem 0 .4rem;padding:.4rem .7rem;background:#FFF3CD;border:1.5px solid #FFD43B;border-radius:8px;font-size:.68rem;color:#856404">⚠️ Typhoon เชี่ยวชาญภาษาไทยเป็นหลัก — สำหรับคู่ภาษาอื่นแนะนำใช้ Gemini</div>
+
+    <div class="lang-dir">
+      <select class="lang-box" id="srcLang" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--r);padding:.5rem .6rem;font-size:.85rem;font-weight:700;font-family:inherit;background:var(--white);color:var(--text);outline:none;min-width:120px;text-align:center">
+        <option value="en">🇬🇧 English</option>
+        <option value="th">🇹🇭 ไทย</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="pt">🇵🇹 Português</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="vi">🇻🇳 Tiếng Việt</option>
+        <option value="id">🇮🇩 Bahasa Indonesia</option>
+      </select>
+      <button class="lang-swap" id="swapBtn" title="สลับภาษา">⇆</button>
+      <select class="lang-box" id="tgtLang" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--r);padding:.5rem .6rem;font-size:.85rem;font-weight:700;font-family:inherit;background:var(--white);color:var(--text);outline:none;min-width:120px;text-align:center">
+        <option value="th" selected>🇹🇭 ไทย</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="pt">🇵🇹 Português</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="vi">🇻🇳 Tiếng Việt</option>
+        <option value="id">🇮🇩 Bahasa Indonesia</option>
+      </select>
+    </div>
+
+    <div class="f"><label class="fl" id="styleLabel">สไตล์การแปล</label><select class="fi" id="style" style="cursor:pointer">
+      <option value="natural" id="optNatural">🎯 แปลธรรมชาติ — อ่านง่าย ลื่นไหล</option>
+      <option value="formal" id="optFormal">📚 แปลเป็นทางการ — คงน้ำเสียงต้นฉบับ</option>
+      <option value="creative" id="optCreative">✨ แปลสร้างสรรค์ — เน้นความสวยงามของภาษา</option>
+      <option value="literal" id="optLiteral">📝 แปลตรงตัว — ใกล้เคียงต้นฉบับที่สุด</option>
+    </select></div>
+
+    <div class="g2">
+      <div class="f"><label class="fl" id="spLabel">เริ่มหน้า</label><input class="fi" id="sp" type="number" min="1" value="1" placeholder="1"></div>
+      <div class="f"><label class="fl" id="epLabel">สิ้นสุดหน้า</label><input class="fi" id="ep" type="number" min="0" value="0" placeholder="0 = ทั้งหมด"></div>
+    </div>
+
+    <div class="f"><label class="fl" id="promptLabel">คำสั่งเพิ่มเติม (ไม่บังคับ)</label><textarea class="fi" id="customPrompt" rows="2" placeholder="เช่น: แปลชื่อตัวละครเป็นไทย, คงศัพท์เทคนิคเป็นภาษาอังกฤษ" id="promptPh"></textarea></div>
+
+    <!-- Glossary -->
+    <div class="gloss" id="glossSec">
+      <label class="fl" id="glossLabel">📖 คลังศัพท์ (Glossary)</label>
+      <div class="gloss-pairs" id="glossPairs"></div>
+      <button class="btn btn-o" id="bAddGloss" style="font-size:.66rem">+ เพิ่มคำศัพท์</button>
+    </div>
+  </div>
+
+  <!-- Card 3: Book Info -->
+  <div class="card">
+    <div class="card-h"><div class="card-n">3</div><div class="card-t" id="card3Title">ข้อมูลหนังสือ</div></div>
+    <div class="mflex">
+      <div class="cov" id="cz" title="เลือกปกหนังสือ"><div class="cov-ph"><span>🖼️</span><span id="covText">ปก</span></div><input type="file" id="ci" accept="image/*" hidden></div>
+      <div class="mfields">
+        <div class="f"><label class="fl">Title</label><input class="fi" id="mt" placeholder="ชื่อหนังสือ"></div>
+        <div class="f"><label class="fl">Author</label><input class="fi" id="ma" placeholder="ผู้แต่ง"></div>
+        <div class="g2">
+          <div class="f"><label class="fl">Publisher</label><input class="fi" id="mp" placeholder="สำนักพิมพ์"></div>
+          <div class="f"><label class="fl">Language</label><input class="fi" id="ml" value="th" placeholder="th"></div>
+        </div>
+        <div class="f"><label class="fl">Description</label><textarea class="fi" id="md" rows="2" placeholder="คำอธิบาย (ไม่บังคับ)"></textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost Estimate -->
+  <div class="cost-bar" id="costBar"></div>
+
+  <!-- Recovery Box -->
+  <div class="recbox" id="recBox">
+    <div class="rec-info" id="recInfo">💾 พบงานแปลค้าง</div>
+    <div class="rec-btns">
+      <button class="rb-build" id="rbBuild">📥 กู้คืน → สร้าง EPUB</button>
+      <button class="rb-resume" id="rbResume" style="display:none">▶️ แปลต่อ</button>
+      <button class="rb-export" id="rbExport">💾 Export JSON</button>
+      <button class="rb-import" id="rbImport">📂 Import JSON</button>
+      <button class="rb-del" id="rbDel">🗑️ ลบทิ้ง</button>
+      <input type="file" id="rbFi" accept=".json" hidden>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="brow">
+    <button class="btn btn-go" id="bgo" disabled>🌐 เริ่มแปล</button>
+    <button class="btn btn-st" id="bst" disabled>■ หยุด</button>
+  </div>
+
+  <!-- Status -->
+  <div class="sts" id="sts"></div>
+
+  <!-- Progress -->
+  <div class="prg" id="prg">
+    <div class="prg-box">
+      <div class="prg-top"><div class="prg-t" id="pt">กำลังแปล...</div><div class="prg-p" id="pp">0%</div></div>
+      <div class="prg-track"><div class="prg-bar" id="pb"></div></div>
+      <div style="font-size:.62rem;color:var(--text3);margin-top:.25rem" id="pm"></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="statbar" id="statbar">
+    <div class="sb-row">
+      <div class="sb-item"><div class="sb-val" id="sv-total">0</div><div class="sb-lbl">Pages</div></div>
+      <div class="sb-item"><div class="sb-val" id="sv-done">0</div><div class="sb-lbl">Translated</div></div>
+      <div class="sb-item"><div class="sb-val" id="sv-skip">0</div><div class="sb-lbl">Skipped</div></div>
+      <div class="sb-item"><div class="sb-val" id="sv-toktotal">0</div><div class="sb-lbl">Tokens</div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="res" id="res">
+    <div class="card">
+      <div class="card-h"><div class="card-n">✓</div><div class="card-t" id="dlTitle">ดาวน์โหลด</div></div>
+      <div class="dlg">
+        <a class="dlc" id="de" href="#" download><div class="dli epub">📗</div><div><div class="dln" id="dlEpub">EPUB (แปลแล้ว)</div><div class="dls" id="es">—</div></div></a>
+        <a class="dlc" id="dt" href="#" download><div class="dli txt">📝</div><div><div class="dln" id="dlTxt">TXT (ข้อความ)</div><div class="dls" id="ts">—</div></div></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- AdSense -->
+  <div style="margin:1rem 0;padding:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2)">
+    <div style="font-size:.58rem;color:var(--text3);text-align:center;margin-bottom:.3rem">Advertisement</div>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-4625693104435293"
+         data-ad-slot="8038681501"
+         data-ad-format="horizontal"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc" id="tocsec">
+    <div class="card">
+      <div class="card-h"><div class="card-n">📑</div><div class="card-t" id="tocTitle">สารบัญ</div></div>
+      <ul class="tocl" id="tocl"></ul>
+      <div class="toca"><button class="btn btn-o" id="bac">+ เพิ่มบท</button><button class="btn btn-o" id="brb">🔄 สร้าง EPUB ใหม่</button></div>
+    </div>
+  </div>
+
+  <!-- EPUB Reader Button -->
+  <div id="readerBtn" style="display:none;margin-bottom:.4rem">
+    <button class="btn btn-o" id="bReader" style="width:100%;justify-content:center;gap:.3rem">📖 อ่าน EPUB ในเบราว์เซอร์</button>
+  </div>
+
+  <!-- Side-by-side Preview -->
+  <div class="compare" id="compareSec">
+    <div class="ct" id="compareToggle"><span class="a">▶</span> <span id="compareText">เปรียบเทียบต้นฉบับ / แปลแล้ว</span></div>
+    <div class="cb" id="compareBody">
+      <div class="compare-hdr">
+        <span class="h-src" id="cmpSrcH">ต้นฉบับ</span>
+        <span class="h-tgt" id="cmpTgtH">แปลแล้ว</span>
+      </div>
+      <div class="compare-grid">
+        <div class="compare-col src" id="cmpSrc"></div>
+        <div class="compare-col tgt" id="cmpTgt"></div>
+      </div>
+      <div class="compare-nav">
+        <button id="cmpPrev">◀ <span id="cmpPrevT">ก่อนหน้า</span></button>
+        <span id="cmpPage">1 / 1</span>
+        <button id="cmpNext"><span id="cmpNextT">ถัดไป</span> ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Console Log -->
+  <div style="margin-top:.3rem">
+    <div class="ct" id="lt"><span class="a">▶</span> Console Log</div>
+    <div class="cb logb" id="lb"></div>
+  </div>
+
+  <!-- Usage Stats -->
+  <div class="ustats" id="ustats"></div>
+
+  <!-- Edit Modal -->
+  <div class="edt-overlay" id="edtOverlay">
+    <div class="edt-box">
+      <div class="edt-head"><h3>✏️ แก้ไขหน้า <span id="edtPageNum"></span></h3><button class="edt-close" id="edtClose">✕</button></div>
+      <textarea class="edt-ta" id="edtTa"></textarea>
+      <div class="edt-foot">
+        <button class="btn btn-o" id="edtCancel">ยกเลิก</button>
+        <button class="btn btn-go" id="edtSave" style="flex:none;padding:.4rem 1rem">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EPUB Reader -->
+  <div class="reader-overlay" id="readerOverlay">
+    <div class="reader-box">
+      <div class="reader-head"><h3>📖 อ่าน EPUB</h3><button class="edt-close" id="readerClose">✕</button></div>
+      <div class="reader-body" id="readerBody"></div>
+      <div class="reader-nav">
+        <button class="btn btn-o" id="rdPrev">◀ ก่อนหน้า</button>
+        <span id="rdPage" style="font-size:.68rem;color:var(--text3)">1 / 1</span>
+        <button class="btn btn-o" id="rdNext">ถัดไป ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <strong>CattoTranslate</strong> by <strong style="color:var(--blue)">cattoData</strong><br>
+    Powered by <a href="https://opentyphoon.ai" target="_blank">Typhoon</a> / <a href="https://ai.google.dev" target="_blank">Gemini</a> · <a href="https://mozilla.github.io/pdf.js/" target="_blank">PDF.js</a> · <a href="https://stuk.github.io/jszip/" target="_blank">JSZip</a><br>
+    <span id="footPrivacy" style="font-size:.58rem;color:var(--text3)">ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ AI API · ไม่เก็บข้อมูลใดๆ</span>
+    <div style="margin-top:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap">
+      <a href="https://github.com/RainflowData/PDF-EPUB-Converter-Thai" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:all .2s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='';this.style.color=''">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Frainflowdata.github.io%2FPDF-EPUB-Converter-Thai%2Ftranslate&label=visitors&countColor=%238b5cf6&labelColor=%236d28d9&style=flat-square" alt="visitors" style="height:20px">
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const $=id=>document.getElementById(id);
+let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
+var tokenUsage={prompt:0,completion:0,total:0},stats={total:0,done:0,skipped:0};
+var _dir='en2th'; /* legacy compat — now derived from dropdowns */
+var startTime=0;
+var LANG_NAMES={en:'English',th:'Thai',zh:'Chinese',ja:'Japanese',ko:'Korean',fr:'French',de:'German',es:'Spanish',pt:'Portuguese',ru:'Russian',ar:'Arabic',vi:'Vietnamese',id:'Indonesian'};
+var LANG_NATIVE={en:'English',th:'ภาษาไทย',zh:'中文',ja:'日本語',ko:'한국어',fr:'Français',de:'Deutsch',es:'Español',pt:'Português',ru:'Русский',ar:'العربية',vi:'Tiếng Việt',id:'Bahasa Indonesia'};
+var LANG_CODES={en:'en',th:'th',zh:'zh',ja:'ja',ko:'ko',fr:'fr',de:'de',es:'es',pt:'pt',ru:'ru',ar:'ar',vi:'vi',id:'id'};
+function getSrcLang(){return $('srcLang').value}
+function getTgtLang(){return $('tgtLang').value}
+function getDirLabel(){return LANG_NAMES[getSrcLang()]+' → '+LANG_NAMES[getTgtLang()]}
+function getTgtSuffix(){return ' ('+getTgtLang().toUpperCase()+')'}
+
+/* ═══ Dark Mode ═══ */
+var _dark=localStorage.getItem('bepub_dark')==='1';
+function applyDark(){document.documentElement.setAttribute('data-theme',_dark?'dark':'');$('dmBtn').textContent=_dark?'☀️':'🌙';localStorage.setItem('bepub_dark',_dark?'1':'0')}
+$('dmBtn').onclick=function(){_dark=!_dark;applyDark()};applyDark();
+
+/* ═══ i18n ═══ */
+var _lang=localStorage.getItem('bepub_lang')||'th';
+var TT={
+  th:{
+    heroDesc:'AI Book Translator<br>แปลหนังสือ PDF/EPUB ด้วย AI — รองรับหลายภาษา พร้อมจัดรูปแบบสวย',
+    tagMulti:'🌐 Multi-Language',tagInput:'📄 PDF + EPUB Input',tagOutput:'📘 EPUB Output',tagClient:'⚡ Client-Side',
+    card1:'อัปโหลดหนังสือ',dzText:'<b>คลิกเลือกไฟล์</b> หรือลากมาวาง',dzHint:'รองรับ .pdf และ .epub',
+    card2:'ตั้งค่าการแปล',styleLabel:'สไตล์การแปล',
+    optNatural:'🎯 แปลธรรมชาติ — อ่านง่าย ลื่นไหล',optFormal:'📚 แปลเป็นทางการ — คงน้ำเสียงต้นฉบับ',
+    optCreative:'✨ แปลสร้างสรรค์ — เน้นความสวยงามของภาษา',optLiteral:'📝 แปลตรงตัว — ใกล้เคียงต้นฉบับที่สุด',
+    spLabel:'เริ่มหน้า',epLabel:'สิ้นสุดหน้า',epPh:'0 = ทั้งหมด',
+    promptLabel:'คำสั่งเพิ่มเติม (ไม่บังคับ)',promptPh:'เช่น: แปลชื่อตัวละครเป็นไทย, คงศัพท์เทคนิคเป็นภาษาอังกฤษ',
+    glossLabel:'📖 คลังศัพท์ (Glossary)',addGloss:'+ เพิ่มคำศัพท์',
+    card3:'ข้อมูลหนังสือ',covText:'ปก',mtPh:'ชื่อหนังสือ',maPh:'ผู้แต่ง',mpPh:'สำนักพิมพ์',mdPh:'คำอธิบาย (ไม่บังคับ)',
+    btnGo:'🌐 เริ่มแปล',btnStop:'■ หยุด',
+    dlTitle:'ดาวน์โหลด',dlEpub:'EPUB (แปลแล้ว)',dlTxt:'TXT (ข้อความ)',
+    tocTitle:'สารบัญ',addChap:'+ เพิ่มบท',rebuildEpub:'🔄 สร้าง EPUB ใหม่',
+    readEpub:'📖 อ่าน EPUB ในเบราว์เซอร์',
+    compareText:'เปรียบเทียบต้นฉบับ / แปลแล้ว',cmpSrcH:'ต้นฉบับ',cmpTgtH:'แปลแล้ว',
+    cmpPrev:'ก่อนหน้า',cmpNext:'ถัดไป',
+    rbBuild:'📥 กู้คืน → สร้าง EPUB',rbResume:'▶️ แปลต่อ',rbExport:'💾 Export JSON',rbImport:'📂 Import JSON',rbDel:'🗑️ ลบทิ้ง',
+    footPrivacy:'ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ AI API · ไม่เก็บข้อมูลใดๆ',
+    typhoonWarn:'⚠️ Typhoon เชี่ยวชาญภาษาไทยเป็นหลัก — สำหรับคู่ภาษาอื่นแนะนำใช้ Gemini',
+    rdPrev:'◀ ก่อนหน้า',rdNext:'ถัดไป ▶',rdTitle:'📖 อ่าน EPUB',
+    edtTitle:'✏️ แก้ไขหน้า',edtCancel:'ยกเลิก',edtSave:'💾 บันทึก'
+  },
+  en:{
+    heroDesc:'AI Book Translator<br>Translate PDF/EPUB books with AI — Multi-language support with beautiful formatting',
+    tagMulti:'🌐 Multi-Language',tagInput:'📄 PDF + EPUB Input',tagOutput:'📘 EPUB Output',tagClient:'⚡ Client-Side',
+    card1:'Upload Book',dzText:'<b>Click to choose file</b> or drag & drop',dzHint:'Supports .pdf and .epub',
+    card2:'Translation Settings',styleLabel:'Translation Style',
+    optNatural:'🎯 Natural — Easy to read, fluent',optFormal:'📚 Formal — Preserve original tone',
+    optCreative:'✨ Creative — Emphasize language beauty',optLiteral:'📝 Literal — Closest to original',
+    spLabel:'Start Page',epLabel:'End Page',epPh:'0 = All',
+    promptLabel:'Custom Instructions (optional)',promptPh:'e.g.: Translate character names, keep technical terms in English',
+    glossLabel:'📖 Glossary',addGloss:'+ Add Term',
+    card3:'Book Info',covText:'Cover',mtPh:'Book title',maPh:'Author',mpPh:'Publisher',mdPh:'Description (optional)',
+    btnGo:'🌐 Start Translating',btnStop:'■ Stop',
+    dlTitle:'Download',dlEpub:'EPUB (Translated)',dlTxt:'TXT (Text)',
+    tocTitle:'Table of Contents',addChap:'+ Add Chapter',rebuildEpub:'🔄 Rebuild EPUB',
+    readEpub:'📖 Read EPUB in Browser',
+    compareText:'Compare Original / Translated',cmpSrcH:'Original',cmpTgtH:'Translated',
+    cmpPrev:'Previous',cmpNext:'Next',
+    rbBuild:'📥 Recover → Build EPUB',rbResume:'▶️ Resume',rbExport:'💾 Export JSON',rbImport:'📂 Import JSON',rbDel:'🗑️ Delete',
+    footPrivacy:'Runs in browser · Data sent only to AI API · No data stored',
+    typhoonWarn:'⚠️ Typhoon specializes in Thai — For other language pairs, use Gemini',
+    rdPrev:'◀ Previous',rdNext:'Next ▶',rdTitle:'📖 Read EPUB',
+    edtTitle:'✏️ Edit Page',edtCancel:'Cancel',edtSave:'💾 Save'
+  }
+};
+function applyTrLang(){
+  var t=TT[_lang]||TT.th;
+  $('langBtn').textContent=_lang.toUpperCase();
+  if($('heroDesc'))$('heroDesc').innerHTML=t.heroDesc;
+  if($('tagMulti'))$('tagMulti').textContent=t.tagMulti;
+  if($('tagInput'))$('tagInput').textContent=t.tagInput;
+  if($('tagOutput'))$('tagOutput').textContent=t.tagOutput;
+  if($('tagClient'))$('tagClient').textContent=t.tagClient;
+  if($('card1Title'))$('card1Title').textContent=t.card1;
+  if($('dzText'))$('dzText').innerHTML=t.dzText;
+  if($('dzHint'))$('dzHint').textContent=t.dzHint;
+  if($('card2Title'))$('card2Title').textContent=t.card2;
+  if($('styleLabel'))$('styleLabel').textContent=t.styleLabel;
+  if($('optNatural'))$('optNatural').textContent=t.optNatural;
+  if($('optFormal'))$('optFormal').textContent=t.optFormal;
+  if($('optCreative'))$('optCreative').textContent=t.optCreative;
+  if($('optLiteral'))$('optLiteral').textContent=t.optLiteral;
+  if($('spLabel'))$('spLabel').textContent=t.spLabel;
+  if($('epLabel'))$('epLabel').textContent=t.epLabel;
+  $('ep').placeholder=t.epPh;
+  if($('promptLabel'))$('promptLabel').textContent=t.promptLabel;
+  $('customPrompt').placeholder=t.promptPh;
+  if($('glossLabel'))$('glossLabel').textContent=t.glossLabel;
+  $('bAddGloss').textContent=t.addGloss;
+  if($('card3Title'))$('card3Title').textContent=t.card3;
+  if($('covText'))$('covText').textContent=t.covText;
+  $('mt').placeholder=t.mtPh;$('ma').placeholder=t.maPh;$('mp').placeholder=t.mpPh;$('md').placeholder=t.mdPh;
+  $('bgo').textContent=t.btnGo;$('bst').textContent=t.btnStop;
+  if($('dlTitle'))$('dlTitle').textContent=t.dlTitle;
+  if($('dlEpub'))$('dlEpub').textContent=t.dlEpub;
+  if($('dlTxt'))$('dlTxt').textContent=t.dlTxt;
+  if($('tocTitle'))$('tocTitle').textContent=t.tocTitle;
+  $('bac').textContent=t.addChap;$('brb').textContent=t.rebuildEpub;
+  $('bReader').textContent=t.readEpub;
+  if($('compareText'))$('compareText').textContent=t.compareText;
+  if($('cmpSrcH'))$('cmpSrcH').textContent=t.cmpSrcH;
+  if($('cmpTgtH'))$('cmpTgtH').textContent=t.cmpTgtH;
+  if($('cmpPrevT'))$('cmpPrevT').textContent=t.cmpPrev;
+  if($('cmpNextT'))$('cmpNextT').textContent=t.cmpNext;
+  $('rbBuild').textContent=t.rbBuild;$('rbResume').textContent=t.rbResume;
+  $('rbExport').textContent=t.rbExport;$('rbImport').textContent=t.rbImport;$('rbDel').textContent=t.rbDel;
+  if($('footPrivacy'))$('footPrivacy').textContent=t.footPrivacy;
+  if($('typhoonWarn'))$('typhoonWarn').textContent=t.typhoonWarn;
+  if($('rdPrev'))$('rdPrev').textContent=t.rdPrev;
+  if($('rdNext'))$('rdNext').textContent=t.rdNext;
+  if($('edtCancel'))$('edtCancel').textContent=t.edtCancel;
+  if($('edtSave'))$('edtSave').textContent=t.edtSave;
+}
+$('langBtn').onclick=function(){_lang=_lang==='th'?'en':'th';localStorage.setItem('bepub_lang',_lang);applyTrLang()};
+applyTrLang();
+
+/* ═══ Remember API Key ═══ */
+var savedKey=localStorage.getItem('bepub_apikey')||'';
+var savedProv=localStorage.getItem('bepub_prov')||'typhoon';
+if(savedKey)$('ak').value=savedKey;
+if(savedProv){$('prov').value=savedProv;if(savedProv==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...'}}
+
+function cleanKey(k){return k.replace(/[^\x20-\x7E]/g,'').trim()}
+function ck(){$('bgo').disabled=!(srcPages.length&&$('ak').value.trim());updateCost()}
+$('ak').oninput=function(){this.value=cleanKey(this.value);ck();localStorage.setItem('bepub_apikey',this.value)};
+$('ak').onpaste=function(){var self=this;setTimeout(function(){self.value=cleanKey(self.value);ck();localStorage.setItem('bepub_apikey',self.value)},0)};
+$('prov').onchange=function(){var v=this.value;localStorage.setItem('bepub_prov',v);if(v==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...'}else{$('ak-lbl').textContent='Typhoon API Key';$('ak').placeholder='typhoon-xxxxxxxx'}ck();updateDir()};
+
+/* ═══ Language Direction ═══ */
+function updateDir(){
+  _dir=getSrcLang()+'2'+getTgtLang();
+  $('ml').value=getTgtLang();
+  /* Typhoon warning for non-Thai pairs */
+  var prov=$('prov').value;
+  var hasThai=getSrcLang()==='th'||getTgtLang()==='th';
+  var warn=$('typhoonWarn');
+  if(warn){warn.style.display=(prov==='typhoon'&&!hasThai)?'block':'none'}
+}
+$('swapBtn').onclick=function(){
+  var s=$('srcLang').value,t=$('tgtLang').value;
+  $('srcLang').value=t;$('tgtLang').value=s;
+  updateDir();updateCost();
+};
+$('srcLang').onchange=function(){if($('srcLang').value===$('tgtLang').value){$('tgtLang').value=$('srcLang').value==='en'?'th':'en'}updateDir();updateCost()};
+$('tgtLang').onchange=function(){if($('tgtLang').value===$('srcLang').value){$('srcLang').value=$('tgtLang').value==='en'?'th':'en'}updateDir();updateCost()};
+updateDir();
+
+/* ═══ Collapsibles ═══ */
+$('lt').onclick=function(){this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')};
+$('compareToggle').onclick=function(){this.classList.toggle('open');$('compareBody').classList.toggle('open')};
+
+/* ═══ Utility ═══ */
+function log(m,t=''){var d=document.createElement('div');d.className='ll '+(t==='error'?'e':t==='success'?'s':'');d.innerHTML='<span class="t">'+new Date().toLocaleTimeString('th',{hour12:0})+'</span>'+m;$('lb').appendChild(d);$('lb').scrollTop=9e9}
+function setSt(m,t){$('sts').className='sts '+t;$('sts').textContent=m}
+function fs(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
+function updateStats(){$('sv-total').textContent=stats.total;$('sv-done').textContent=stats.done;$('sv-skip').textContent=stats.skipped;$('sv-toktotal').textContent=tokenUsage.total.toLocaleString()}
+
+/* ═══ Cost Estimate ═══ */
+function updateCost(){
+  if(!srcPages.length){$('costBar').style.display='none';return}
+  var s0=Math.max(1,+$('sp').value||1),e0=+$('ep').value||0;
+  var end=(e0===0||e0>srcPages.length)?srcPages.length:e0;
+  var numPages=end-s0+1;if(numPages<1)numPages=srcPages.length;
+  var avgChars=srcPages.slice(s0-1,end).reduce(function(a,p){return a+p.length},0)/numPages;
+  var tokPerPage=Math.round(avgChars*1.5);
+  var totalTok=numPages*tokPerPage*2;/* input + output */
+  var prov=$('prov').value,cost;
+  if(prov==='gemini'){cost='ฟรี (Gemini Flash free tier)'}
+  else{var usd=(totalTok/1000*0.003).toFixed(2);cost='~$'+usd+' USD (~'+Math.round(totalTok/1000)+'K tokens)'}
+  $('costBar').innerHTML='💰 ประมาณ: <b>'+cost+'</b> · '+numPages+' หน้า · ~'+tokPerPage+' tok/หน้า';
+  $('costBar').style.display='block';
+}
+$('sp').oninput=function(){updateCost()};
+$('ep').oninput=function(){updateCost()};
+
+/* ═══ Notification ═══ */
+function sendNotif(title,body){if(!('Notification' in window))return;if(Notification.permission==='granted'){new Notification(title,{body:body,icon:'rainflow.png'})}else if(Notification.permission!=='denied'){Notification.requestPermission().then(function(p){if(p==='granted')new Notification(title,{body:body,icon:'rainflow.png'})})}}
+
+/* ═══ Upload ═══ */
+var dz=$('dz'),fi=$('fi');
+dz.onclick=()=>fi.click();
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
+dz.ondragleave=()=>dz.classList.remove('drag');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])};
+fi.onchange=()=>{if(fi.files[0])handleFile(fi.files[0])};
+
+async function handleFile(f){
+  var name=f.name.toLowerCase();
+  if(!name.endsWith('.pdf')&&!name.endsWith('.epub'))return setSt('รองรับเฉพาะ .pdf และ .epub','err');
+  srcFile=f;srcPages=[];translatedPages=[];
+  dz.classList.add('ok');
+  $('fn').style.display='block';$('fn').textContent=f.name+' ('+fs(f.size)+')';
+
+  if(name.endsWith('.pdf')){
+    srcType='pdf';
+    log('📄 โหลด PDF: '+f.name);
+    try{
+      pdfDoc=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+      log('PDF '+pdfDoc.numPages+' หน้า','success');
+      /* Extract text from all pages */
+      setSt('กำลังอ่านข้อความจาก PDF...','info');
+      for(var i=1;i<=pdfDoc.numPages;i++){
+        var txt=await extractPdfText(i);
+        srcPages.push(txt);
+      }
+      $('srcInfo').style.display='block';
+      $('srcInfo').innerHTML='📄 PDF · '+pdfDoc.numPages+' หน้า · '+srcPages.reduce(function(a,p){return a+p.length},0).toLocaleString()+' ตัวอักษร';
+      /* Show PDF preview */
+      try{var pg1=await pdfDoc.getPage(1),vp1=pg1.getViewport({scale:1}),sc=180/Math.max(vp1.width,vp1.height),vp2=pg1.getViewport({scale:sc}),pvC=$('pdfPvC');pvC.width=vp2.width;pvC.height=vp2.height;await pg1.render({canvasContext:pvC.getContext('2d'),viewport:vp2}).promise;$('pdfPvI').textContent=pdfDoc.numPages+' หน้า';$('pdfPv').style.display='block'}catch(e){}
+      /* Auto-fill metadata */
+      try{var meta=await pdfDoc.getMetadata();var info=meta&&meta.info?meta.info:{};if(info.Title&&info.Title.trim())$('mt').value=info.Title.trim();else $('mt').placeholder=f.name.replace(/\.pdf$/i,'');if(info.Author&&info.Author.trim())$('ma').value=info.Author.trim();if(info.Publisher&&info.Publisher.trim())$('mp').value=info.Publisher.trim()}catch(me){}
+      setSt('✅ อ่าน PDF เสร็จ — พร้อมแปล','ok');
+    }catch(e){log('อ่านไม่ได้: '+e.message,'error');setSt('อ่าน PDF ไม่ได้','err')}
+  }else{
+    srcType='epub';
+    log('📗 โหลด EPUB: '+f.name);
+    try{
+      var buf=await f.arrayBuffer();
+      var zip=await JSZip.loadAsync(buf);
+      setSt('กำลังอ่านข้อความจาก EPUB...','info');
+      /* Find content.opf */
+      var opfPath=null;
+      zip.forEach(function(p){if(p.endsWith('.opf'))opfPath=p});
+      var spine=[],items={};
+      if(opfPath){
+        var opfXml=await zip.file(opfPath).async('string');
+        var parser=new DOMParser(),opfDoc=parser.parseFromString(opfXml,'application/xml');
+        /* Extract metadata */
+        var gm=function(tag){var el=opfDoc.querySelector(tag);return el?el.textContent.trim():''};
+        var mt=gm('title'),ma=gm('creator'),mp=gm('publisher'),ml=gm('language'),md=gm('description');
+        if(mt)$('mt').value=mt;if(ma&&ma!=='Unknown')$('ma').value=ma;if(mp)$('mp').value=mp;if(md)$('md').value=md;
+        /* Get spine order */
+        var opfDir=opfPath.replace(/[^\/]*$/,'');
+        opfDoc.querySelectorAll('manifest item').forEach(function(it){items[it.getAttribute('id')]={href:opfDir+it.getAttribute('href'),mt:it.getAttribute('media-type')}});
+        opfDoc.querySelectorAll('spine itemref').forEach(function(ref){var id=ref.getAttribute('idref');if(items[id]&&items[id].mt&&items[id].mt.indexOf('xhtml')>=0)spine.push(items[id].href)});
+        /* Extract cover */
+        try{
+          var coverMeta=opfDoc.querySelector('meta[name="cover"]');
+          if(coverMeta){var covId=coverMeta.getAttribute('content');if(items[covId]){var covFile=zip.file(items[covId].href);if(covFile){var covB64=await covFile.async('base64');coverUrl='data:'+items[covId].mt+';base64,'+covB64;coverMime=items[covId].mt;$('cz').classList.add('ok');var img=document.createElement('img');img.src=coverUrl;$('cz').appendChild(img)}}}
+        }catch(ce){}
+      }
+      /* Read spine pages (or fallback: all xhtml files) */
+      if(!spine.length){zip.forEach(function(p){if(p.endsWith('.xhtml')||p.endsWith('.html'))spine.push(p)});spine.sort()}
+      for(var si=0;si<spine.length;si++){
+        var xf=zip.file(spine[si]);
+        if(!xf)continue;
+        var xhtml=await xf.async('string');
+        var bodyM=xhtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if(bodyM){
+          var txt=bodyM[1].replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n\n').replace(/<\/div>/gi,'\n').replace(/<\/h[1-6]>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(n)}).replace(/\n\s*\n\s*\n/g,'\n\n').trim();
+          if(txt.length>5)srcPages.push(txt);
+        }
+      }
+      $('srcInfo').style.display='block';
+      $('srcInfo').innerHTML='📗 EPUB · '+srcPages.length+' หน้า · '+srcPages.reduce(function(a,p){return a+p.length},0).toLocaleString()+' ตัวอักษร';
+      $('pdfPv').style.display='none';
+      setSt('✅ อ่าน EPUB เสร็จ — พร้อมแปล','ok');
+      log('📗 EPUB: '+srcPages.length+' sections, '+srcPages.reduce(function(a,p){return a+p.length},0)+' chars','success');
+    }catch(e){log('อ่าน EPUB ไม่ได้: '+e.message,'error');setSt('อ่าน EPUB ไม่ได้: '+e.message,'err')}
+  }
+  ck();updateCost();
+}
+
+async function extractPdfText(pageNum){
+  try{
+    var pg=await pdfDoc.getPage(pageNum),tc=await pg.getTextContent(),t='';
+    tc.items.forEach(function(item){if(item.str)t+=item.str;if(item.hasEOL)t+='\n'});
+    return t.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
+  }catch(e){return ''}
+}
+
+/* ═══ Cover ═══ */
+$('cz').onclick=()=>$('ci').click();
+$('ci').onchange=()=>{var f=$('ci').files[0];if(!f)return;coverMime=f.type;var r=new FileReader();r.onload=e=>{coverUrl=e.target.result;$('cz').classList.add('ok');var o=$('cz').querySelector('img');if(o)o.remove();var i=document.createElement('img');i.src=coverUrl;$('cz').appendChild(i);log('ปก: '+f.name,'success')};r.readAsDataURL(f)};
+
+/* ═══ localStorage Save/Restore ═══ */
+var LS_TR_KEY='bepub_translate_progress';
+function saveTrProgress(){
+  try{localStorage.setItem(LS_TR_KEY,JSON.stringify({
+    v:1,srcPages:srcPages,translatedPages:translatedPages,dir:_dir,
+    srcLangCode:getSrcLang(),tgtLangCode:getTgtLang(),
+    stats:stats,tokenUsage:tokenUsage,chaps:chaps,
+    meta:{t:$('mt').value,a:$('ma').value,p:$('mp').value,l:$('ml').value,d:$('md').value},
+    style:$('style').value,prov:$('prov').value,
+    sp:+$('sp').value||1,ep:+$('ep').value||0,
+    ts:Date.now()
+  }))}catch(e){}
+}
+function loadTrProgress(){
+  try{var d=localStorage.getItem(LS_TR_KEY);return d?JSON.parse(d):null}catch(e){return null}
+}
+function clearTrProgress(){try{localStorage.removeItem(LS_TR_KEY)}catch(e){}}
+
+/* ═══ Post-processing: clean CJK garbage & artifacts ═══ */
+function cleanTranslation(text){
+  /* Remove stray CJK characters (Chinese/Japanese) mixed in Thai output */
+  var t=text;
+  /* Remove isolated Chinese/Japanese characters (keep if it's clearly a proper noun context) */
+  t=t.replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u{20000}-\u{2A6DF}\u3040-\u309F\u30A0-\u30FF]+/gu,function(m){
+    /* Keep if it's inside quotes or seems intentional (very short = likely noise) */
+    return m.length<=3?'':m;
+  });
+  /* Remove markdown artifacts like triple backticks that AI sometimes adds */
+  t=t.replace(/^```[\w]*\n?/gm,'').replace(/^```$/gm,'');
+  /* Remove AI commentary lines */
+  t=t.replace(/^\*?\(?(หมายเหตุ|Note|Translation note|แปลโดย|Translated by)[^\n]*$/gim,'');
+  /* Clean excessive whitespace */
+  t=t.replace(/\n\s*\n\s*\n/g,'\n\n');
+  return t.trim();
+}
+
+/* ═══ Chapter Detection ═══ */
+function detectChapters(pages){
+  var ch=[];
+  var patterns=[
+    /^(บทที่\s*\d+[^\n]*)/m,
+    /^(ตอนที่\s*\d+[^\n]*)/m,
+    /^(Chapter\s+\d+[^\n]*)/im,
+    /^(ภาค(?:ที่)?\s*\d+[^\n]*)/m,
+    /^(Part\s+\d+[^\n]*)/im,
+    /^(บทนำ|คำนำ|สารบัญ|อารัมภบท|บทส่งท้าย|บทสรุป|ภาคผนวก|Prologue|Epilogue|Introduction|Conclusion|Preface|Foreword|Afterword)/im,
+    /^#{1,3}\s+(.+)/m
+  ];
+  pages.forEach(function(s,i){
+    if(!s||!s.trim())return;
+    for(var pi=0;pi<patterns.length;pi++){
+      var m=s.match(patterns[pi]);
+      if(m){
+        var t=m[1].replace(/^#+\s*/,'').trim();
+        if(t.length>60)t=t.slice(0,60)+'…';
+        if(t.length<2)continue;
+        if(!ch.some(function(x){return x.title===t&&Math.abs(x.pi-i)<3}))
+          ch.push({title:t,pi:i});
+        break;
+      }
+    }
+  });
+  return ch;
+}
+
+/* ═══ TOC UI ═══ */
+var chaps=[];
+function rtoc(){
+  var l=$('tocl');l.innerHTML='';
+  if(!chaps.length){$('tocsec').classList.remove('on');return}
+  $('tocsec').classList.add('on');
+  chaps.forEach(function(c,i){
+    var li=document.createElement('li');li.className='toci';
+    li.innerHTML='<span class="tn">'+(i+1)+'.</span><input value="'+ex(c.title)+'" data-i="'+i+'"><span class="tp">p.'+(c.pi+1)+'</span><span class="tx" data-i="'+i+'">✕</span>';
+    l.appendChild(li);
+  });
+  l.querySelectorAll('input').forEach(function(inp){inp.onchange=function(){chaps[+inp.dataset.i].title=inp.value}});
+  l.querySelectorAll('.tx').forEach(function(b){b.onclick=function(){chaps.splice(+b.dataset.i,1);rtoc()}});
+}
+$('bac').onclick=function(){var p=prompt('หน้าเริ่มบท:');if(!p)return;var n=+p;if(!n||n<1)return;var t=prompt('ชื่อบท:')||'บทที่ '+(chaps.length+1);chaps.push({title:t,pi:n-1});chaps.sort(function(a,b){return a.pi-b.pi});rtoc()};
+$('brb').onclick=async function(){
+  if(!translatedPages.length)return setSt('ยังไม่มีข้อมูล','err');
+  log('🔄 Rebuild...');
+  try{
+    var eb=await buildEpub(translatedPages,chaps);
+    var base=($('mt').value.trim()||'translated')+getTgtSuffix();
+    $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
+    setSt('✅ EPUB ใหม่พร้อมแล้ว','ok');log('✅ Rebuild done','success');
+  }catch(e){setSt('❌ '+e.message,'err');log(e.message,'error')}
+};
+
+/* ═══ AI Translation ═══ */
+async function translateChunk(text,key,style,customPrompt,prevContext){
+  var provider=$('prov').value;
+  var srcL=LANG_NAMES[getSrcLang()]||'English';
+  var tgtL=LANG_NAMES[getTgtLang()]||'Thai';
+  var tgtLangName=LANG_NATIVE[getTgtLang()]||tgtL;
+  
+  var styles={
+    natural:'แปลอย่างธรรมชาติ ลื่นไหล อ่านสนุก เหมือนนักเขียนไทยเขียนเอง ใช้สำนวนที่คนไทยจริงๆ ใช้กัน ไม่แข็งทื่อ ไม่เป็นภาษาแปล ปรับสำนวน idiom ให้เข้ากับ'+tgtLangName,
+    formal:'แปลเป็นทางการ ใช้ภาษาสุภาพ คงน้ำเสียงและอารมณ์ของต้นฉบับ ศัพท์เทคนิคต้องถูกต้อง',
+    creative:'แปลอย่างสร้างสรรค์ ใช้ภาษาสวยงาม วรรณศิลป์ที่สะเทือนอารมณ์ เล่นคำและสัมผัสได้ แต่ยังรักษาความหมาย',
+    literal:'แปลตรงตัวที่สุด คงโครงสร้างประโยคใกล้เคียงต้นฉบับ เหมาะสำหรับเอกสารที่ต้องการความถูกต้อง'
+  };
+
+  var prompt='คุณคือนักแปลหนังสืออาชีพ มีฝีมือระดับสำนักพิมพ์ชั้นนำ\n\n'
+    +'**งาน:** แปลข้อความจาก '+srcL+' เป็น '+tgtL+'\n\n'
+    +'**สไตล์:** '+styles[style]+'\n\n'
+    +'**กฎสำคัญ:**\n'
+    +'1. ห้ามมีภาษาจีน ญี่ปุ่น เกาหลี ปนเด็ดขาด — ถ้าต้นฉบับมี ให้แปลเป็น'+tgtLangName+'หรือทับศัพท์ภาษาอังกฤษ\n'
+    +'2. คงรูปแบบ markdown: หัวข้อ (#, ##, ###), ย่อหน้า, รายการ, ตาราง\n'
+    +'3. ชื่อเฉพาะ/ชื่อตัวละคร: ถ้ามีชื่อไทยที่รู้จักกันดีให้ใช้ชื่อไทย ถ้าไม่แน่ใจให้ทับศัพท์อังกฤษ\n'
+    +'4. ห้ามเพิ่มหมายเหตุ คำอธิบาย หรือความเห็นใดๆ — ส่งเฉพาะข้อความที่แปลแล้วเท่านั้น\n'
+    +'5. ใช้สรรพนาม ระดับภาษา น้ำเสียง ให้เหมาะกับบริบทของเรื่อง\n'
+    +'6. ส่งผลลัพธ์เป็น markdown สะอาด ห้ามครอบด้วย ```\n';
+  if(customPrompt)prompt+='7. คำสั่งเพิ่มเติม: '+customPrompt+'\n';
+  var glossPrompt=getGlossaryPrompt();if(glossPrompt)prompt+=glossPrompt;
+  if(prevContext)prompt+='\n**บริบทจากส่วนก่อนหน้า (อ้างอิงเพื่อความต่อเนื่องเท่านั้น ห้ามแปลซ้ำ):**\n'+prevContext.slice(-500)+'\n';
+  prompt+='\n---\n\n'+text;
+
+  var maxTok=8192;
+  var temps={natural:0.4,formal:0.2,creative:0.6,literal:0.15};
+  var temp=temps[style]||0.3;
+
+  if(provider==='gemini'){
+    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTok,temperature:temp}})
+    });
+    if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Gemini '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
+    var json=await r.json();
+    var translated=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
+    var um=json.usageMetadata||{};
+    return{text:translated,usage:{prompt_tokens:um.promptTokenCount||0,completion_tokens:um.candidatesTokenCount||0,total_tokens:um.totalTokenCount||0}};
+  }else{
+    var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'คุณคือนักแปลหนังสืออาชีพ ส่งเฉพาะข้อความที่แปลแล้ว ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลีปนเด็ดขาด'},{role:'user',content:prompt}],max_tokens:maxTok,temperature:temp})
+    });
+    if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('API '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
+    var json=await r.json();
+    var translated=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'':'';
+    var usage=json.usage||{prompt_tokens:0,completion_tokens:0,total_tokens:0};
+    return{text:translated,usage:usage};
+  }
+}
+
+async function translateRetry(text,key,style,customPrompt,prevContext){
+  for(var a=0;a<=3;a++){
+    try{return await translateChunk(text,key,style,customPrompt,prevContext)}
+    catch(e){
+      var st=e.httpStatus||0;
+      if(st===401){e.fatal=true;e.reason='invalid_key';throw e}
+      if(st===402||st===403){e.fatal=true;e.reason='quota_exceeded';throw e}
+      if(st===429&&a>=3){e.fatal=true;e.reason='rate_limit';throw e}
+      if(st===429){var d=Math.pow(2,a)*2000+Math.random()*1000;log('⏳ Rate limit — retry '+(a+1)+'/3 ('+(d/1000).toFixed(1)+'s)...','purple');$('pm').textContent='rate limit — '+(d/1000).toFixed(0)+'s...';await new Promise(function(r){setTimeout(r,d)});continue}
+      if(st>=500&&a<3){var d2=3000+Math.random()*2000;log('⏳ Server '+st+' — retry...','purple');await new Promise(function(r){setTimeout(r,d2)});continue}
+      throw e;
+    }
+  }
+}
+
+/* ═══ Main Process ═══ */
+$('bgo').onclick=function(){startTranslate().catch(function(e){log('❌ ระบบ: '+e.message,'error');setSt('❌ '+e.message,'err');isProc=false;$('bgo').disabled=false;$('bst').disabled=true})};
+$('bst').onclick=()=>{isCancelled=true;log('🛑 หยุด','error')};
+
+async function startTranslate(){
+  if(isProc)return;isProc=true;isCancelled=false;
+  startTime=Date.now();
+  var key=cleanKey($('ak').value);
+  var style=$('style').value;
+  var customPrompt=$('customPrompt').value.trim();
+  var s0=Math.max(1,+$('sp').value||1)-1;
+  var e0=+$('ep').value||0;
+  var end=(e0===0||e0>srcPages.length)?srcPages.length:e0;
+  var pages=srcPages.slice(s0,end);
+
+  translatedPages=[];
+  tokenUsage={prompt:0,completion:0,total:0};
+  stats={total:pages.length,done:0,skipped:0};
+
+  $('bgo').disabled=true;$('bst').disabled=false;
+  $('res').classList.remove('on');$('compareSec').classList.remove('on');
+  $('prg').classList.add('on','run');$('statbar').classList.add('on');
+  var dirLabel=getDirLabel();
+  setSt('🌐 กำลังแปล '+dirLabel+' · '+pages.length+' หน้า','info');
+  log('🌐 เริ่มแปล: '+dirLabel+' · '+pages.length+' หน้า · สไตล์: '+style);
+  updateStats();
+
+  var consErr=0,fatalErr=null;
+  var full='';
+
+  for(var i=0;i<pages.length;i++){
+    if(isCancelled)break;
+    if(fatalErr||consErr>=3)break;
+
+    var pageText=pages[i];
+    var pageNum=s0+i+1;
+
+    $('pt').textContent='🌐 หน้า '+pageNum+'/'+end;
+    var pct=Math.round(stats.done/stats.total*100);
+    $('pp').textContent=pct+'%';$('pb').style.width=pct+'%';
+
+    /* Skip blank pages */
+    if(!pageText||pageText.trim().length<10){
+      translatedPages.push('');stats.skipped++;stats.done++;
+      log('⏭️ หน้า '+pageNum+': ว่าง — ข้าม','purple');
+      updateStats();continue;
+    }
+
+    /* Translate in chunks if text is very long */
+    var MAX_CHARS=3000;
+    var translated='';
+    try{
+      /* Context from previous page for continuity */
+      var prevCtx=(i>0&&translatedPages[i-1])?translatedPages[i-1]:''; 
+      if(pageText.length<=MAX_CHARS){
+        var t0=Date.now();
+        var res=await translateRetry(pageText,key,style,customPrompt,prevCtx);
+        translated=cleanTranslation(res.text);
+        tokenUsage.prompt+=(res.usage.prompt_tokens||0);
+        tokenUsage.completion+=(res.usage.completion_tokens||0);
+        tokenUsage.total+=(res.usage.total_tokens||0);
+        var sec=((Date.now()-t0)/1000).toFixed(1);
+        log('✅ หน้า '+pageNum+': '+translated.length+' chars ('+res.usage.total_tokens+' tok, '+sec+'s)','success');
+      }else{
+        /* Split into paragraphs and batch with context overlap */
+        var paras=pageText.split(/\n\n+/);
+        var chunks=[],cur='';
+        for(var pi=0;pi<paras.length;pi++){
+          if(cur.length+paras[pi].length>MAX_CHARS&&cur.length>0){chunks.push(cur);cur='';}
+          cur+=(cur?'\n\n':'')+paras[pi];
+        }
+        if(cur)chunks.push(cur);
+        log('📄 หน้า '+pageNum+': '+chunks.length+' chunks ('+pageText.length+' chars)');
+        var chunkCtx=prevCtx;
+        for(var ci=0;ci<chunks.length;ci++){
+          if(isCancelled)break;
+          var t0=Date.now();
+          var res=await translateRetry(chunks[ci],key,style,customPrompt,chunkCtx);
+          var cleanRes=cleanTranslation(res.text);
+          translated+=(translated?'\n\n':'')+cleanRes;
+          chunkCtx=cleanRes; /* pass previous chunk as context */
+          tokenUsage.prompt+=(res.usage.prompt_tokens||0);
+          tokenUsage.completion+=(res.usage.completion_tokens||0);
+          tokenUsage.total+=(res.usage.total_tokens||0);
+        }
+        log('✅ หน้า '+pageNum+': '+translated.length+' chars ('+chunks.length+' chunks)','success');
+      }
+      translatedPages.push(translated);
+      full+=translated+'\n\n--- Page Break ---\n\n';
+      stats.done++;consErr=0;
+      saveTrProgress(); /* save after each page */
+
+      /* ETA */
+      var remain=stats.total-stats.done;
+      if(stats.done>0){
+        var avgMs=(Date.now()-startTime)/stats.done;
+        var eta=Math.round(remain*avgMs/1000);
+        var etaStr=eta>60?Math.floor(eta/60)+'m '+eta%60+'s':eta+'s';
+        $('pm').textContent='เหลือ ~'+etaStr;
+      }
+    }catch(e){
+      translatedPages.push('');stats.done++;consErr++;
+      log('❌ หน้า '+pageNum+': '+e.message,'error');
+      if(e.fatal){
+        fatalErr=e;
+        var reasons={'invalid_key':'🔑 API Key ไม่ถูกต้อง','quota_exceeded':'💳 Token/Credit หมด','rate_limit':'🚫 Rate limit'};
+        log((reasons[e.reason]||'❌ Fatal')+' — หยุดทันที','error');break;
+      }
+      if(consErr>=3){log('🛑 Error '+consErr+' ครั้งติด — หยุดอัตโนมัติ','error');break}
+    }
+    updateStats();
+  }
+
+  $('pb').style.width='100%';$('pp').textContent='100%';$('prg').classList.remove('run');$('pm').textContent='';
+
+  var hasContent=full.trim().length>0;
+  if(hasContent){
+    try{
+      chaps=detectChapters(translatedPages);
+      rtoc();
+      var epubBlob=await buildEpub(translatedPages,chaps);
+      var txtBlob=new Blob(['\ufeff'+full],{type:'text/plain;charset=utf-8'});
+      var base=($('mt').value.trim()||'translated')+getTgtSuffix();
+      $('de').href=URL.createObjectURL(epubBlob);$('de').download=base+'.epub';$('es').textContent=fs(epubBlob.size);
+      $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
+      $('res').classList.add('on');
+      /* Side-by-side preview */
+      if(srcPages.length&&translatedPages.length){
+        $('compareSec').classList.add('on');
+        showComparePage(0);
+      }
+      $('readerBtn').style.display='block';
+    }catch(e){log('EPUB build: '+e.message,'error')}
+  }
+
+  var stopped=!!fatalErr||isCancelled||consErr>=3;
+  var goodPages=translatedPages.filter(function(s){return s&&s.trim()}).length;
+  var tokStr=tokenUsage.total>0?' · 🎯 '+tokenUsage.total.toLocaleString()+' tokens':'';
+
+  if(!stopped){
+    var msg='✅ แปลเสร็จ! '+goodPages+' หน้า'+tokStr;
+    setSt(msg,'ok');log('🎉 '+msg,'success');
+    sendNotif('CattoTranslate ✅',msg);
+    playSound();recordUsage(goodPages,tokenUsage.total);
+    clearTrProgress();
+  }else{
+    var stopReason=isCancelled?'หยุดโดยผู้ใช้':fatalErr?(fatalErr.reason==='invalid_key'?'🔑 Key ไม่ถูกต้อง':fatalErr.reason==='quota_exceeded'?'💳 Token หมด':'🚫 Rate limit'):'Error '+consErr+' ครั้งติด';
+    var msg2=stopReason+' — ได้ '+goodPages+'/'+stats.total+' หน้า'+tokStr;
+    setSt(msg2,fatalErr&&fatalErr.reason==='invalid_key'?'err':'info');
+    log(msg2,fatalErr?'error':'purple');
+    sendNotif('CattoTranslate',msg2);
+  }
+
+  $('bgo').disabled=false;$('bst').disabled=true;isProc=false;
+}
+
+/* ═══ Side-by-side Compare ═══ */
+var _cmpIdx=0;
+function showComparePage(idx){
+  var s0=Math.max(1,+$('sp').value||1)-1;
+  var maxP=Math.min(srcPages.length,translatedPages.length);
+  if(idx<0)idx=0;if(idx>=maxP)idx=maxP-1;
+  _cmpIdx=idx;
+  $('cmpSrc').textContent=srcPages[s0+idx]||'(ว่าง)';
+  var tgtText=(translatedPages[idx]||'(ยังไม่แปล)').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  $('cmpTgt').innerHTML='<div style="cursor:pointer" title="✏️ คลิกเพื่อแก้ไข">'+tgtText+'</div>';
+  $('cmpTgt').querySelector('div').onclick=function(){openEditModal(idx)};
+  $('cmpPage').textContent=(idx+1)+' / '+maxP;
+}
+$('cmpPrev').onclick=function(){showComparePage(_cmpIdx-1)};
+$('cmpNext').onclick=function(){showComparePage(_cmpIdx+1)};
+
+/* ═══ Build EPUB ═══ */
+function m2h(md){
+  var h=md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h=h.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  h=h.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  h=h.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  h=h.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  h=h.replace(/^&gt;\s?(.+)$/gm,'<blockquote>$1</blockquote>');
+  h=h.replace(/^[-*]\s+(.+)$/gm,'<li>$1</li>');
+  h=h.replace(/((?:<li>.+<\/li>\n?)+)/g,'<ul>$1</ul>');
+  return h.split(/\n\n+/).map(function(p){p=p.trim();if(!p)return'';if(/^<(h[1-3]|table|ul|blockquote)/.test(p))return p;return'<p>'+p.replace(/\n/g,'<br/>')+'</p>'}).join('\n');
+}
+function ex(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+async function buildEpub(pages,ch){
+  var z=new JSZip();
+  var m={t:$('mt').value.trim()||'Translated Book',a:$('ma').value.trim()||'Unknown',p:$('mp').value.trim(),l:$('ml').value.trim()||'th',d:$('md').value.trim()};
+  var uid='cattotranslate-'+Date.now();
+
+  z.file('mimetype','application/epub+zip',{compression:'STORE'});
+  z.file('META-INF/container.xml','<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>');
+  z.file('OEBPS/style.css',"@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;600&display=swap');body{font-family:'IBM Plex Sans Thai',sans-serif;line-height:1.9;padding:1.2em;color:#1a1a1a;max-width:38em;margin:0 auto}h1{font-size:1.6em;margin:1.5em 0 .5em;font-weight:600}h2{font-size:1.3em;margin:1.3em 0 .4em}h3{font-size:1.1em;margin:1.1em 0 .3em}p{margin:.4em 0;text-indent:1.5em;text-align:justify}table{border-collapse:collapse;width:100%;margin:1em 0}td,th{border:1px solid #ddd;padding:.5em .7em}blockquote{border-left:3px solid #ccc;padding-left:1em;color:#555;margin:1em 0}img.cover{max-width:100%;display:block;margin:0 auto}");
+
+  ch=ch||[];
+  var mf='<item id="css" href="style.css" media-type="text/css"/>\n';
+  var sp='',nav='',po=1,pfm={};
+
+  /* Cover */
+  if(coverUrl){
+    var ext=coverMime&&coverMime.includes('png')?'png':'jpg';
+    var mt=coverMime||'image/jpeg';
+    z.file('OEBPS/cover.'+ext,Uint8Array.from(atob(coverUrl.split(',')[1]),function(c){return c.charCodeAt(0)}));
+    mf+='<item id="cover-img" href="cover.'+ext+'" media-type="'+mt+'"/>\n';
+    z.file('OEBPS/cover.xhtml','<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="UTF-8"/><link rel="stylesheet" href="style.css"/></head><body><div style="text-align:center"><img class="cover" src="cover.'+ext+'" alt="Cover"/></div></body></html>');
+    mf+='<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>\n';
+    sp+='<itemref idref="cover"/>\n';
+    nav+='<navPoint id="cover" playOrder="'+po+'"><navLabel><text>ปก</text></navLabel><content src="cover.xhtml"/></navPoint>\n';po++;
+  }
+
+  /* Pages */
+  pages.forEach(function(s,i){
+    if(!s||!s.trim())return;
+    var fn='p'+i+'.xhtml';pfm[i]=fn;
+    z.file('OEBPS/'+fn,'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xml:lang="'+ex(m.l)+'"><head><meta charset="UTF-8"/><link rel="stylesheet" href="style.css"/></head><body>'+m2h(s.trim())+'</body></html>');
+    mf+='<item id="p'+i+'" href="'+fn+'" media-type="application/xhtml+xml"/>\n';
+    sp+='<itemref idref="p'+i+'"/>\n';
+  });
+  /* Chapter nav from detected chapters, or fallback to page numbers */
+  if(ch.length){
+    ch.forEach(function(c,i){var fn=pfm[c.pi]||('p'+c.pi+'.xhtml');nav+='<navPoint id="ch'+i+'" playOrder="'+po+'"><navLabel><text>'+ex(c.title)+'</text></navLabel><content src="'+fn+'"/></navPoint>\n';po++});
+  }else{
+    pages.forEach(function(s,i){if(s&&s.trim())nav+='<navPoint id="n'+i+'" playOrder="'+po+'"><navLabel><text>หน้า '+(i+1)+'</text></navLabel><content src="p'+i+'.xhtml"/></navPoint>\n';po++});
+  }
+
+  var mx='<dc:title>'+ex(m.t)+'</dc:title><dc:language>'+ex(m.l)+'</dc:language><dc:identifier id="uid">'+uid+'</dc:identifier><dc:creator>'+ex(m.a)+'</dc:creator>';
+  if(m.p)mx+='<dc:publisher>'+ex(m.p)+'</dc:publisher>';
+  if(m.d)mx+='<dc:description>'+ex(m.d)+'</dc:description>';
+  if(coverUrl)mx+='<meta name="cover" content="cover-img"/>';
+
+  z.file('OEBPS/content.opf','<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="uid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">'+mx+'</metadata><manifest>'+mf+'<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/></manifest><spine toc="ncx">'+sp+'</spine></package>');
+  z.file('OEBPS/toc.ncx','<?xml version="1.0" encoding="UTF-8"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head><meta name="dtb:uid" content="'+uid+'"/></head><docTitle><text>'+ex(m.t)+'</text></docTitle><navMap>'+nav+'</navMap></ncx>');
+
+  return z.generateAsync({type:'blob',mimeType:'application/epub+zip'});
+}
+
+/* ═══ Recovery: auto-detect saved progress ═══ */
+(function(){
+  var saved=loadTrProgress();
+  if(!saved||!saved.translatedPages||!saved.translatedPages.length)return;
+  var age=Date.now()-saved.ts;
+  if(age>48*60*60*1000){clearTrProgress();return} /* expire after 48h */
+  var good=saved.translatedPages.filter(function(s){return s&&s.trim()}).length;
+  var total=saved.srcPages?saved.srcPages.length:0;
+  var timeAgo=age<60000?'เมื่อกี้':age<3600000?Math.round(age/60000)+' นาทีที่แล้ว':Math.round(age/3600000)+' ชม.ที่แล้ว';
+  var dirLabel=saved.srcLangCode&&saved.tgtLangCode?(saved.srcLangCode.toUpperCase()+'→'+saved.tgtLangCode.toUpperCase()):(saved.dir==='en2th'?'EN→TH':'TH→EN');
+  $('recInfo').innerHTML='💾 พบงานแปลค้าง: <b>'+dirLabel+'</b> — ได้ '+good+'/'+total+' หน้า ('+timeAgo+')';
+  $('recBox').classList.add('on');
+  /* Show resume button if not all pages done */
+  if(good<total)$('rbResume').style.display='inline-flex';
+  /* Restore metadata hints */
+  if(saved.meta){
+    if(saved.meta.t)$('mt').value=saved.meta.t;
+    if(saved.meta.a)$('ma').value=saved.meta.a;
+    if(saved.meta.p)$('mp').value=saved.meta.p;
+    if(saved.meta.l)$('ml').value=saved.meta.l;
+    if(saved.meta.d)$('md').value=saved.meta.d;
+  }
+  log('💾 พบงานแปลค้าง: '+good+'/'+total+' หน้า ('+timeAgo+')','purple');
+})();
+
+/* ═══ Recovery Actions ═══ */
+$('rbBuild').onclick=async function(){
+  var saved=loadTrProgress();
+  if(!saved||!saved.translatedPages||!saved.translatedPages.length){setSt('❌ ไม่พบข้อมูล','err');return}
+  try{
+    translatedPages=saved.translatedPages;
+    srcPages=saved.srcPages||[];
+    _dir=saved.dir||'en2th';
+    if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
+    if(saved.tgtLangCode)$('tgtLang').value=saved.tgtLangCode;
+    updateDir();
+    stats=saved.stats||{total:translatedPages.length,done:translatedPages.filter(function(s){return s&&s.trim()}).length,skipped:0};
+    tokenUsage=saved.tokenUsage||{prompt:0,completion:0,total:0};
+    chaps=saved.chaps||detectChapters(translatedPages);
+    rtoc();
+    var title=$('mt').value.trim()||'translated';
+    var base=title+getTgtSuffix();
+    setSt('กำลังสร้าง EPUB...','info');
+    var eb=await buildEpub(translatedPages,chaps);
+    var full=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+    var tb=new Blob(['\ufeff'+full],{type:'text/plain;charset=utf-8'});
+    $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
+    $('dt').href=URL.createObjectURL(tb);$('dt').download=base+'.txt';$('ts').textContent=fs(tb.size);
+    $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
+    if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
+    $('readerBtn').style.display='block';
+    $('recBox').classList.remove('on');
+    setSt('✅ กู้คืนสำเร็จ! EPUB พร้อมดาวน์โหลด','ok');
+    log('🎉 กู้คืน: '+translatedPages.filter(function(s){return s&&s.trim()}).length+' หน้า','success');
+  }catch(e){setSt('❌ '+e.message,'err');log('❌ กู้คืน: '+e.message,'error')}
+};
+
+$('rbResume').onclick=function(){
+  var saved=loadTrProgress();
+  if(!saved||!saved.srcPages||!saved.srcPages.length){setSt('❌ ไม่พบข้อมูลต้นฉบับ','err');return}
+  /* Restore all state so user can hit "เริ่มแปล" */
+  srcPages=saved.srcPages;
+  translatedPages=saved.translatedPages||[];
+  _dir=saved.dir||'en2th';
+  if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
+  if(saved.tgtLangCode)$('tgtLang').value=saved.tgtLangCode;
+  updateDir();
+  stats=saved.stats||{total:srcPages.length,done:translatedPages.length,skipped:0};
+  tokenUsage=saved.tokenUsage||{prompt:0,completion:0,total:0};
+  if(saved.style)$('style').value=saved.style;
+  if(saved.meta){if(saved.meta.t)$('mt').value=saved.meta.t;if(saved.meta.a)$('ma').value=saved.meta.a;if(saved.meta.p)$('mp').value=saved.meta.p;if(saved.meta.l)$('ml').value=saved.meta.l;if(saved.meta.d)$('md').value=saved.meta.d}
+  var done=translatedPages.filter(function(s){return s&&s.trim()}).length;
+  /* Set start page to resume from */
+  var sp=saved.sp||1;
+  var resumeFrom=sp+done;
+  $('sp').value=resumeFrom;
+  if(saved.ep)$('ep').value=saved.ep;
+  $('srcInfo').style.display='block';
+  $('srcInfo').innerHTML='📗 กู้คืน: '+srcPages.length+' หน้า · แปลแล้ว '+done+' หน้า · จะแปลต่อจากหน้า '+resumeFrom;
+  $('recBox').classList.remove('on');
+  ck();updateCost();
+  setSt('▶️ พร้อมแปลต่อ — กดปุ่ม "เริ่มแปล" ได้เลย','info');
+  log('▶️ กู้คืนสถานะ: แปลต่อจากหน้า '+resumeFrom,'success');
+};
+
+$('rbExport').onclick=function(){
+  var saved=loadTrProgress();
+  if(!saved){setSt('❌ ไม่พบข้อมูล','err');return}
+  var blob=new Blob([JSON.stringify(saved,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='cattotranslate_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  log('💾 Export สำเร็จ','success');
+};
+
+$('rbImport').onclick=function(){$('rbFi').click()};
+$('rbFi').onchange=function(){
+  var f=$('rbFi').files[0];
+  if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      if(!data.translatedPages||!data.translatedPages.length)throw new Error('ไฟล์ไม่มีข้อมูลการแปล');
+      localStorage.setItem(LS_TR_KEY,JSON.stringify(data));
+      /* Reload to pick up */
+      var good=data.translatedPages.filter(function(s){return s&&s.trim()}).length;
+      srcPages=data.srcPages||[];
+      translatedPages=data.translatedPages;
+      _dir=data.dir||'en2th';
+      if(data.srcLangCode)$('srcLang').value=data.srcLangCode;
+      if(data.tgtLangCode)$('tgtLang').value=data.tgtLangCode;
+      updateDir();
+      stats=data.stats||{total:translatedPages.length,done:good,skipped:0};
+      tokenUsage=data.tokenUsage||{prompt:0,completion:0,total:0};
+      if(data.meta){if(data.meta.t)$('mt').value=data.meta.t;if(data.meta.a)$('ma').value=data.meta.a;if(data.meta.p)$('mp').value=data.meta.p;if(data.meta.l)$('ml').value=data.meta.l;if(data.meta.d)$('md').value=data.meta.d}
+      ck();updateCost();
+      $('recInfo').innerHTML='💾 Import สำเร็จ: '+good+'/'+srcPages.length+' หน้า';
+      $('recBox').classList.add('on');
+      if(good<srcPages.length)$('rbResume').style.display='inline-flex';
+      setSt('✅ Import สำเร็จ — กดกู้คืนหรือแปลต่อได้','ok');
+      log('📂 Import: '+good+' หน้า จาก '+f.name,'success');
+    }catch(err){setSt('❌ ไฟล์ไม่ถูกต้อง: '+err.message,'err');log('❌ Import: '+err.message,'error')}
+  };
+  reader.readAsText(f);
+};
+
+$('rbDel').onclick=function(){
+  if(!confirm('ลบข้อมูลแปลค้างทิ้ง? (ไม่สามารถกู้คืนได้)'))return;
+  clearTrProgress();$('recBox').classList.remove('on');
+  setSt('🗑️ ลบข้อมูลค้างแล้ว','info');log('🗑️ ลบ localStorage','purple');
+};
+
+/* ═══ Glossary JS ═══ */
+var GL_KEY='bepub_glossary';
+function loadGlossary(){try{return JSON.parse(localStorage.getItem(GL_KEY))||[]}catch(e){return[]}}
+function saveGlossary(){
+  var pairs=[];
+  document.querySelectorAll('.gloss-row').forEach(function(row){
+    var ins=row.querySelectorAll('input');
+    var src=ins[0]?ins[0].value.trim():'';
+    var tgt=ins[1]?ins[1].value.trim():'';
+    if(src&&tgt)pairs.push({s:src,t:tgt});
+  });
+  localStorage.setItem(GL_KEY,JSON.stringify(pairs));
+  return pairs;
+}
+function addGlossRow(src,tgt){
+  var row=document.createElement('div');row.className='gloss-row';
+  row.innerHTML='<input placeholder="คำต้นฉบับ" value="'+(src?ex(src):'')+'"><span class="gloss-arrow">→</span><input placeholder="คำแปล" value="'+(tgt?ex(tgt):'')+'"><span class="gx">✕</span>';
+  row.querySelector('.gx').onclick=function(){row.remove();saveGlossary()};
+  row.querySelectorAll('input').forEach(function(inp){inp.onchange=function(){saveGlossary()}});
+  $('glossPairs').appendChild(row);
+}
+$('bAddGloss').onclick=function(){addGlossRow('','')};
+(function(){var gl=loadGlossary();gl.forEach(function(p){addGlossRow(p.s,p.t)})})();
+function getGlossaryPrompt(){
+  var pairs=saveGlossary();
+  if(!pairs.length)return '';
+  return '\n**คลังศัพท์ (ต้องแปลตามนี้เสมอ):**\n'+pairs.map(function(p){return '• '+p.s+' → '+p.t}).join('\n')+'\n';
+}
+
+/* ═══ Edit Text Modal JS ═══ */
+var _edtIdx=-1;
+function openEditModal(idx){
+  _edtIdx=idx;
+  $('edtPageNum').textContent=(idx+1);
+  $('edtTa').value=translatedPages[idx]||'';
+  $('edtOverlay').classList.add('on');
+  $('edtTa').focus();
+}
+function closeEditModal(){$('edtOverlay').classList.remove('on');_edtIdx=-1}
+$('edtClose').onclick=closeEditModal;
+$('edtCancel').onclick=closeEditModal;
+$('edtSave').onclick=function(){
+  if(_edtIdx<0)return;
+  translatedPages[_edtIdx]=$('edtTa').value;
+  saveTrProgress();
+  showComparePage(_edtIdx);
+  closeEditModal();
+  log('✏️ แก้ไขหน้า '+(_edtIdx+1)+' แล้ว','success');
+  setSt('✅ บันทึกการแก้ไขหน้า '+(_edtIdx+1)+' แล้ว','ok');
+};
+$('edtOverlay').onclick=function(e){if(e.target===$('edtOverlay'))closeEditModal()};
+
+/* ═══ EPUB Reader JS ═══ */
+var _rdIdx=0;
+function openReader(){
+  if(!translatedPages.length)return;
+  var pages=translatedPages.filter(function(s){return s&&s.trim()});
+  if(!pages.length)return;
+  _rdIdx=0;
+  $('readerOverlay').classList.add('on');
+  renderReaderPage(0);
+}
+function closeReader(){$('readerOverlay').classList.remove('on')}
+function renderReaderPage(idx){
+  var pages=translatedPages.filter(function(s){return s&&s.trim()});
+  if(idx<0)idx=0;if(idx>=pages.length)idx=pages.length-1;
+  _rdIdx=idx;
+  $('readerBody').innerHTML=m2h(pages[idx]);
+  $('rdPage').textContent=(idx+1)+' / '+pages.length;
+  $('readerBody').scrollTop=0;
+}
+$('bReader').onclick=openReader;
+$('readerClose').onclick=closeReader;
+$('rdPrev').onclick=function(){renderReaderPage(_rdIdx-1)};
+$('rdNext').onclick=function(){renderReaderPage(_rdIdx+1)};
+$('readerOverlay').onclick=function(e){if(e.target===$('readerOverlay'))closeReader()};
+
+/* ═══ Sound Notification ═══ */
+function playSound(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(587,ctx.currentTime);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+0.5);
+    var o2=ctx.createOscillator(),g2=ctx.createGain();
+    o2.connect(g2);g2.connect(ctx.destination);
+    o2.type='sine';o2.frequency.setValueAtTime(784,ctx.currentTime+0.15);
+    g2.gain.setValueAtTime(0.3,ctx.currentTime+0.15);
+    g2.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.65);
+    o2.start(ctx.currentTime+0.15);o2.stop(ctx.currentTime+0.65);
+  }catch(e){}
+}
+
+/* ═══ Keyboard Shortcuts ═══ */
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
+    e.preventDefault();
+    if(!$('bgo').disabled)$('bgo').click();
+  }
+  if(e.key==='Escape'){
+    if($('edtOverlay').classList.contains('on')){closeEditModal();return}
+    if($('readerOverlay').classList.contains('on')){closeReader();return}
+    if(isProc){isCancelled=true;log('🛑 หยุด (Esc)','error')}
+  }
+});
+
+/* ═══ Usage Stats (All-time) ═══ */
+var US_KEY='bepub_usage';
+function loadUsage(){try{return JSON.parse(localStorage.getItem(US_KEY))||{sessions:0,pages:0,tokens:0}}catch(e){return{sessions:0,pages:0,tokens:0}}}
+function saveUsage(u){try{localStorage.setItem(US_KEY,JSON.stringify(u))}catch(e){}}
+function updateUsageDisplay(){
+  var u=loadUsage();
+  if(u.sessions||u.pages||u.tokens){
+    $('ustats').textContent='📊 สถิติรวม: '+u.sessions+' ครั้ง · '+u.pages+' หน้า · '+u.tokens.toLocaleString()+' tokens';
+    $('ustats').style.display='block';
+  }
+}
+function recordUsage(pages,tokens){
+  var u=loadUsage();
+  u.sessions++;u.pages+=pages;u.tokens+=tokens;
+  saveUsage(u);updateUsageDisplay();
+}
+updateUsageDisplay();
+
+/* ═══ PWA Service Worker ═══ */
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
+</script>
+</body>
+</html>
