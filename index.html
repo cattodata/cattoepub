@@ -8,8 +8,8 @@
 <link rel="icon" href="cattodata.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6FA8DD">
-<!-- Google AdSense -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4625693104435293" crossorigin="anonymous"></script>
+<!-- Google AdSense (disabled) -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4625693104435293" crossorigin="anonymous"></script> -->
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DBTHGF25YB"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DBTHGF25YB');</script>
@@ -459,7 +459,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
       <img src="cattodata.png" alt="cattodata" class="hero-avatar">
       <h1>🐱 Catto<span>EPUB</span> 📘</h1>
     </div>
-    <p class="hero-desc">PDF to EPUB Converter (Thai)<br>แปลง PDF เป็น EPUB ด้วย Typhoon OCR — ทำงานในเบราว์เซอร์ ไม่ต้องติดตั้ง</p>
+    <p class="hero-desc">Convert complex Thai PDFs into clean, readable EPUBs using AI-powered OCR<br>แปลง PDF เป็น EPUB ด้วย GenAI + Typhoon OCR รองรับภาษาไทยโดยเฉพาะ ทำงานบนเบราว์เซอร์ ไม่ต้องติดตั้ง ไม่ส่งข้อมูลขึ้นเซิร์ฟเวอร์</p>
     <div class="tags">
       <span class="tag">🇹🇭 Thai OCR</span>
       <span class="tag">📱 Mobile Ready</span>
@@ -491,6 +491,16 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
         <li><b>แก้ไขสารบัญ</b> — ระบบตรวจจับบท/หัวข้ออัตโนมัติ แก้ไขได้ แล้วกดสร้างใหม่</li>
         <li><b>ดาวน์โหลด</b> — ได้ EPUB + TXT พร้อมใช้บน e-reader</li>
       </ol>
+    </div>
+  </div>
+
+  <!-- Who is this for -->
+  <div style="margin-bottom:1rem;padding:.8rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);line-height:1.7">
+    <div id="whoTitle" style="font-size:.82rem;font-weight:700;color:var(--text)">🎯 เหมาะสำหรับใคร?</div>
+    <div id="whoDesc" style="font-size:.76rem;color:var(--text2);margin-top:.3rem">
+      📚 นักอ่านที่อยากแปลง PDF เป็น eBook อ่านสะดวก &nbsp;·&nbsp;
+      🎓 นักเรียน/นักศึกษาที่ต้องการ digitize เอกสาร &nbsp;·&nbsp;
+      📖 คนรักหนังสือที่อยากสร้างคลัง eBook ส่วนตัว
     </div>
   </div>
 
@@ -540,7 +550,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   <div class="card">
     <div class="card-h"><div class="card-n">2</div><div class="card-t">ตั้งค่า</div></div>
     <div class="g2" style="margin-bottom:.5rem">
-      <div class="f"><label class="fl">OCR Provider</label><select class="fi" id="prov" style="cursor:pointer"><option value="typhoon">🇹🇭 Typhoon OCR (Thai เก่ง)</option><option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option></select></div>
+      <div class="f"><label class="fl">OCR Provider</label><select class="fi" id="prov" style="cursor:pointer"><option value="typhoon">🇹🇭 Typhoon OCR (Thai เก่ง)</option><!-- <option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option> --></select></div>
       <div class="f"><label class="fl" id="ak-lbl">Typhoon API Key</label><input type="password" class="fi" id="ak" placeholder="typhoon-xxxxxxxx" autocomplete="off"></div>
     </div>
     <div class="g3">
@@ -576,6 +586,10 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <button class="btn btn-go" id="bgo" disabled>▶ เริ่มแปลงไฟล์</button>
     <button class="btn btn-res" id="bres" disabled>▶ ต่อ</button>
     <button class="btn btn-st" id="bst" disabled>■ หยุด</button>
+  </div>
+  <div style="text-align:center;margin-bottom:.5rem">
+    <button onclick="reportBug()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;cursor:pointer;font-size:.72rem;font-weight:600;color:var(--text2);transition:border-color .2s,color .2s,box-shadow .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)';this.style.boxShadow='0 2px 8px rgba(239,68,68,0.15)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.boxShadow=''">🐛 Report Bug / แจ้งปัญหา</button>
+    <a href="mailto:cattodata@gmail.com?subject=CattoEPUB%20—%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20%E2%98%95&body=%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B5%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20CattoEPUB%20%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%82%E0%B8%AD%E0%B8%9A%E0%B8%B1%E0%B8%8D%E0%B8%8A%E0%B8%B5%E0%B8%AA%E0%B8%B3%E0%B8%AB%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B9%82%E0%B8%AD%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%A7%E0%B8%A2%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;cursor:pointer;font-size:.72rem;font-weight:600;color:var(--text2);text-decoration:none;transition:border-color .2s,color .2s,box-shadow .2s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.boxShadow='0 2px 8px rgba(139,92,246,0.15)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.boxShadow=''">☕ Buy Me a Coffee / สนับสนุนแอพนี้</a>
   </div>
   <div id="recoverBox" style="display:none;margin-bottom:.6rem">
     <div style="padding:.7rem 1rem;background:var(--amber-l);border:1.5px solid var(--amber);border-radius:var(--r2);font-size:.76rem;color:#92400e">
@@ -623,17 +637,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     </div>
   </div>
 
-  <!-- AdSense -->
-  <div style="margin:1rem 0;padding:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2)">
-    <div style="font-size:.58rem;color:var(--text3);text-align:center;margin-bottom:.3rem">Advertisement</div>
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-4625693104435293"
-         data-ad-slot="8038681501"
-         data-ad-format="horizontal"
-         data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
+  <!-- AdSense (disabled) -->
 
   <div class="toc" id="tocsec">
     <div class="card">
@@ -682,11 +686,21 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   <div class="foot">
     <strong>Original concept:</strong> Bepub by Ken Takahashi (<a href="https://colab.research.google.com/drive/1lgmYkuEeSUlVDLpplXCnFIQdJP9YMWjw?usp=sharing" target="_blank" style="color:var(--text3);text-decoration:none;font-size:.58rem">Colab</a>) · <strong>Web version:</strong> cattoData<br>
     Built with <a href="https://opentyphoon.ai" target="_blank">Typhoon OCR</a> · <a href="https://mozilla.github.io/pdf.js/" target="_blank">PDF.js</a> · <a href="https://stuk.github.io/jszip/" target="_blank">JSZip</a><br>
-    <span style="font-size:.58rem;color:var(--text3)">ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ Typhoon API · ไม่เก็บข้อมูลใดๆ<br>Shared in <a href="https://www.facebook.com/groups/778412228952249/" target="_blank" style="color:var(--text3);text-decoration:none">ชุมชนนักอ่าน eBook</a></span>
+    <span id="footPrivacy" style="font-size:.58rem;color:var(--text3)">ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ Typhoon API · ไม่เก็บข้อมูลใดๆ<br>Shared in <a href="https://www.facebook.com/groups/778412228952249/" target="_blank" style="color:var(--text3);text-decoration:none">ชุมชนนักอ่าน eBook</a> · Trusted by Thai ebook community 🇹🇭</span>
+    <div id="disclaimerBox" style="margin-top:.5rem;padding:.5rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:.56rem;color:var(--text3);line-height:1.6;text-align:left">
+      ⚠️ <strong style="color:var(--text2)">ข้อตกลงการใช้งาน (Disclaimer)</strong><br>
+      เครื่องมือนี้มีไว้สำหรับแปลงไฟล์ที่ผู้ใช้งานมีสิทธิ์ใช้งานอย่างถูกต้อง เพื่อการอ่านส่วนบุคคลเท่านั้น ห้ามใช้กับเนื้อหาที่ละเมิดลิขสิทธิ์ หรือเผยแพร่ แจกจ่าย หรือจำหน่ายไฟล์ที่แปลงแล้วโดยไม่ได้รับอนุญาต ผู้ใช้งานเป็นผู้รับผิดชอบต่อการใช้งานแต่เพียงผู้เดียว ผู้พัฒนาไม่รับผิดชอบต่อการใช้งานที่ผิดกฎหมายใด ๆ
+    </div>
     <div style="margin-top:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap">
       <a href="https://github.com/cattodata/cattoepub" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:color .15s,border-color .15s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='';this.style.color=''">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
         GitHub
+      </a>
+      <a href="javascript:void(0)" onclick="reportBug()" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:color .15s,border-color .15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='';this.style.color=''">
+        🐛 Report Bug
+      </a>
+      <a href="mailto:cattodata@gmail.com?subject=CattoEPUB%20—%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20%E2%98%95&body=%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B5%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20CattoEPUB%20%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%82%E0%B8%AD%E0%B8%9A%E0%B8%B1%E0%B8%8D%E0%B8%8A%E0%B8%B5%E0%B8%AA%E0%B8%B3%E0%B8%AB%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B9%82%E0%B8%AD%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%A7%E0%B8%A2%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:color .15s,border-color .15s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='';this.style.color=''">
+        ☕ Buy Me a Coffee
       </a>
       <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fcattodata.github.io%2Fcattoepub&label=visitors&countColor=%238b5cf6&labelColor=%236d28d9&style=flat-square" alt="visitors" style="height:20px">
     </div>
@@ -694,6 +708,12 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
 </div>
 
 <script>
+function reportBug(){
+  const title=encodeURIComponent('[Bug] ');
+  const body=encodeURIComponent('**อธิบายปัญหาที่พบ:**\n\n\n**ขั้นตอนที่ทำให้เกิดปัญหา:**\n1. \n2. \n3. \n\n**สิ่งที่คาดว่าจะเกิด:**\n\n\n---\n**Browser:** '+navigator.userAgent+'\n**URL:** '+location.href);
+  window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
+}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 let pdfFile,pdfDoc,isCancelled=false,isProc=false,coverUrl,coverMime,ocrS=[],chaps=[],pageImgs=[];
 var stats={total:0,textExtract:0,ocrApi:0,skipped:0},tokenUsage={prompt:0,completion:0,total:0},lastStopPage=0;
@@ -703,7 +723,7 @@ const $=id=>document.getElementById(id);
 var _lang=localStorage.getItem('bepub_lang')||'th';
 var T={
   th:{
-    heroDesc:'PDF to EPUB Converter (Thai)<br>แปลง PDF เป็น EPUB ด้วย Typhoon OCR — ทำงานในเบราว์เซอร์ ไม่ต้องติดตั้ง',
+    heroDesc:'PDF to EPUB Converter (Thai)<br>แปลง PDF เป็น EPUB ด้วย GenAI + Typhoon OCR — ทำงานในเบราว์เซอร์ ไม่ต้องติดตั้ง',
     howTo:'📖 วิธีใช้งาน',uploadPdf:'อัปโหลด PDF',
     clickOrDrag:'<b>คลิกเลือกไฟล์</b> หรือลากมาวาง',pdfHint:'รองรับ .pdf — ไฟล์สแกนก็ใช้ได้',
     epubResTitle:'อัปโหลด EPUB เดิม — ต่อจากที่ค้าง',epubResDesc:'มี EPUB ที่สร้างค้างไว้? อัปโหลดแล้ว resume ต่อจากหน้าที่ยังไม่ได้แปลง',
@@ -729,10 +749,14 @@ var T={
     recoverTitle:'💾 พบข้อมูลค้าง — ไม่มี PDF ก็สร้าง EPUB ได้!',
     recoverBtn:'📥 กู้คืน → สร้าง EPUB',recoverClear:'🗑️ ลบทิ้ง',
     tagOcr:'🇹🇭 Thai OCR',tagMobile:'📱 Mobile Ready',tagPrivacy:'🔒 ข้อมูลไม่ผ่านเซิร์ฟเวอร์',tagClient:'⚡ Client-Side',
-    epEndPh:'0=ทั้งหมด'
+    epEndPh:'0=ทั้งหมด',
+    whoTitle:'🎯 เหมาะสำหรับใคร?',
+    whoDesc:'📚 นักอ่านที่อยากแปลง PDF เป็น eBook อ่านสะดวก &nbsp;·&nbsp; 🎓 นักเรียน/นักศึกษาที่ต้องการ digitize เอกสาร &nbsp;·&nbsp; 📖 คนรักหนังสือที่อยากสร้างคลัง eBook ส่วนตัว',
+    footPrivacy:'ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ Typhoon API · ไม่เก็บข้อมูลใดๆ<br>Shared in <a href="https://www.facebook.com/groups/778412228952249/" target="_blank" style="color:var(--text3);text-decoration:none">ชุมชนนักอ่าน eBook</a> · Trusted by Thai ebook community 🇹🇭',
+    disclaimer:'⚠️ <strong style="color:var(--text2)">ข้อตกลงการใช้งาน (Disclaimer)</strong><br>เครื่องมือนี้มีไว้สำหรับแปลงไฟล์ที่ผู้ใช้งานมีสิทธิ์ใช้งานอย่างถูกต้อง เพื่อการอ่านส่วนบุคคลเท่านั้น ห้ามใช้กับเนื้อหาที่ละเมิดลิขสิทธิ์ หรือเผยแพร่ แจกจ่าย หรือจำหน่ายไฟล์ที่แปลงแล้วโดยไม่ได้รับอนุญาต ผู้ใช้งานเป็นผู้รับผิดชอบต่อการใช้งานแต่เพียงผู้เดียว ผู้พัฒนาไม่รับผิดชอบต่อการใช้งานที่ผิดกฎหมายใด ๆ'
   },
   en:{
-    heroDesc:'PDF to EPUB Converter (Thai)<br>Convert PDF to EPUB with Typhoon OCR — works in browser, no install needed',
+    heroDesc:'Convert complex Thai PDFs into clean, readable EPUBs using AI-powered OCR<br>Convert PDF to EPUB with GenAI + Typhoon OCR, optimized for Thai. Runs in browser — no install, no data sent to servers',
     howTo:'📖 How to Use',uploadPdf:'Upload PDF',
     clickOrDrag:'<b>Click to select</b> or drag & drop',pdfHint:'Supports .pdf — scanned files work too',
     epubResTitle:'Upload existing EPUB — Resume',epubResDesc:'Have a partial EPUB? Upload it to resume from where you left off',
@@ -758,7 +782,11 @@ var T={
     recoverTitle:'💾 Recovery data found — Build EPUB without PDF!',
     recoverBtn:'📥 Recover → Build EPUB',recoverClear:'🗑️ Delete',
     tagOcr:'🇹🇭 Thai OCR',tagMobile:'📱 Mobile Ready',tagPrivacy:'🔒 Data never leaves browser',tagClient:'⚡ Client-Side',
-    epEndPh:'0=All'
+    epEndPh:'0=All',
+    whoTitle:'🎯 Who is this for?',
+    whoDesc:'📚 Readers who want to convert PDFs to eBooks &nbsp;·&nbsp; 🎓 Students digitizing documents &nbsp;·&nbsp; 📖 Book lovers building a personal eBook library',
+    footPrivacy:'Runs in browser · Data sent only to Typhoon API · No data stored<br>Shared in <a href="https://www.facebook.com/groups/778412228952249/" target="_blank" style="color:var(--text3);text-decoration:none">Thai eBook Community</a> · Trusted by Thai ebook community 🇹🇭',
+    disclaimer:'⚠️ <strong style="color:var(--text2)">Disclaimer</strong><br>This tool is intended for converting files that you have the legal right to use, for personal reading only. It must not be used with copyrighted content without permission, or to distribute, publish, or sell converted files. Users are solely responsible for their use of this tool. The developer is not liable for any unlawful use.'
   }
 };
 function applyLang(){
@@ -813,6 +841,11 @@ function applyLang(){
   if(sbLabels[3])sbLabels[3].textContent=t.sbSkip;
   $('pt').textContent=t.processing;
   $('langBtn').textContent=_lang==='th'?'EN':'TH';
+  /* Footer & Disclaimer */
+  if($('footPrivacy'))$('footPrivacy').innerHTML=t.footPrivacy;
+  if($('disclaimerBox'))$('disclaimerBox').innerHTML=t.disclaimer;
+  if($('whoTitle'))$('whoTitle').textContent=t.whoTitle;
+  if($('whoDesc'))$('whoDesc').innerHTML=t.whoDesc;
 }
 
 /* ═══ Dark Mode ═══ */

@@ -1,230 +1,149 @@
-# 🐱 CattoEPUB 📘 — PDF to EPUB Converter & 🐱 CattoTranslate 🌐 — AI Book Translator
+# 🐱 CattoEPUB 📘 & CattoTranslate 🌐
 
-แปลง PDF เป็น EPUB ด้วย Typhoon OCR / Gemini Flash + แปลหนังสือ AI (EN↔TH) — ทำงานในเบราว์เซอร์ ไม่ต้องติดตั้ง
+**Convert complex Thai PDFs into clean, readable EPUBs using AI-powered OCR**  
+แปลง PDF เป็น EPUB ด้วย GenAI + Typhoon OCR รองรับภาษาไทยโดยเฉพาะ ทำงานบนเบราว์เซอร์ ไม่ต้องติดตั้ง ไม่ส่งข้อมูลขึ้นเซิร์ฟเวอร์
 
-🔗 **เข้าใช้ได้ที่:** [https://cattodata.github.io/cattoepub/](https://cattodata.github.io/cattoepub/)  
-📦 **GitHub Repository:** [https://github.com/cattodata/cattoepub](https://github.com/cattodata/cattoepub)
+🔗 **CattoEPUB:** [cattodata.com/cattoepub](https://cattodata.com/cattoepub)  
+🔗 **CattoTranslate:** [cattodata.com/cattoepub/translate.html](https://cattodata.com/cattoepub/translate.html)  
+📦 **GitHub:** [github.com/cattodata/cattoepub](https://github.com/cattodata/cattoepub)
 
 ![Client-Side](https://img.shields.io/badge/Client--Side-JavaScript-yellow)
 ![Thai OCR](https://img.shields.io/badge/Thai%20OCR-Typhoon-blue)
-![Gemini](https://img.shields.io/badge/Gemini-Flash-orange)
 ![PWA](https://img.shields.io/badge/PWA-Offline-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## 📱 2 หน้าหลัก
+## 📱 2 Tools
 
-| หน้า | ไฟล์ | คำอธิบาย |
-|------|------|----------|
-| **🐱 CattoEPUB** | `index.html` | แปลง PDF → EPUB ด้วย OCR (Typhoon/Gemini) |
-| **🐱 CattoTranslate** | `translate.html` | แปลหนังสือ PDF/EPUB (EN↔TH) ด้วย AI |
+| Tool | File | Description |
+|------|------|-------------|
+| **🐱 CattoEPUB** | `index.html` | Convert PDF → EPUB with Typhoon OCR, optimized for Thai |
+| **🐱 CattoTranslate** | `translate.html` | Translate entire PDF/EPUB books with AI (EN↔TH) |
 
 ---
 
-## 💡 ที่มาของโปรเจกต์
+## 💡 Origin
 
 ### Original: Bepub by Ken Takahashi
-โปรเจกต์นี้เริ่มต้นจากไอเดียของ **Ken Takahashi** ที่แชร์ใน [ชุมชนนักอ่าน eBook](https://www.facebook.com/groups/ebookreader/posts/25556985560668239) — เป็น Python notebook (Google Colab) ที่ใช้ Typhoon OCR แปลง PDF ภาษาไทยเป็น EPUB ได้
+Based on a Python notebook by **Ken Takahashi** shared in [ชุมชนนักอ่าน eBook](https://www.facebook.com/groups/ebookreader/posts/25556985560668239) — a Google Colab script using Typhoon OCR to convert Thai PDFs to EPUB.
 
-- 🔗 [Colab ต้นฉบับ](https://colab.research.google.com/drive/1lgmYkuEeSUlVDLpplXCnFIQdJP9YMWjw?usp=sharing)
-- ใช้ `typhoon-ocr` library + Gradio UI
-- ทำงานบน Google Colab (ต้องรัน Python)
+- 🔗 [Original Colab](https://colab.research.google.com/drive/1lgmYkuEeSUlVDLpplXCnFIQdJP9YMWjw?usp=sharing)
 
 ### Web Version: by cattoData
-**cattoData** นำไอเดียมาสร้างเป็น **เว็บแอป** ที่ทำงานได้ในเบราว์เซอร์โดยตรง ไม่ต้องติดตั้งอะไร และเพิ่มฟีเจอร์ใหม่ๆ มากมาย รวมถึงหน้าแปลหนังสือด้วย AI ในชื่อ **CattoEPUB** + **CattoTranslate**
+**cattoData** rebuilt it as a **browser-based web app** — no installation needed, with many added features including AI book translation (**CattoTranslate**).
 
 ---
 
-## ✨ ฟีเจอร์ทั้งหมด
+## ✨ Features
 
-### 🌐 สถาปัตยกรรม — Client-Side Web App
-- ทำงานในเบราว์เซอร์ 100% (PDF.js + JSZip + AI API)
-- **PWA** — ติดตั้งเป็น app บนมือถือ/เดสก์ท็อปได้, ทำงาน offline
-- **Mobile Ready** — responsive ใช้งานบนมือถือได้
-- 🔒 ข้อมูลไม่ผ่านเซิร์ฟเวอร์ (ส่งเฉพาะไปยัง AI API)
+### 🌐 Architecture — Client-Side Web App
+- Runs 100% in browser (PDF.js + JSZip + AI API)
+- **PWA** — installable on mobile/desktop, works offline
+- **Mobile Ready** — fully responsive
+- 🔒 Privacy-first — data sent only to AI API, nothing stored on servers
 
-### 📘 CattoEPUB — OCR Converter (index.html)
+### 📘 CattoEPUB — PDF to EPUB Converter
 
-#### 💎 Token Saver Mode (ประหยัด ~85%)
-โหมดประหยัด token สำหรับไฟล์ขนาดใหญ่:
+- **Typhoon OCR** — optimized for Thai language
+- **💎 Token Saver Mode** — save ~85% tokens: extract text first, skip blanks, compress images
+- **⚡ Parallel Processing** — 3-5 pages simultaneously
+- **🖼️ Smart Image Embed** — embeds real illustrations, skips scanned pages
+- **✏️ Edit OCR Results** — edit text page by page before building EPUB
+- **▶️ Resume & Recovery** — stop/resume anytime, auto-save to localStorage
+- **📕 Upload existing EPUB** — resume from partial conversion
+- **📊 Stats & Cost Estimate** — track pages, tokens, and estimated cost
+- **📑 Auto Table of Contents** — auto-detect chapters, edit/add/delete entries
+- **🛡️ Smart Retry** — exponential backoff for rate limits, auto-stop on fatal errors
 
-**การทำงาน 3 ขั้นตอนต่อหน้า:**
-1. **ดึง text จาก PDF** → ถ้าได้ ≥30 ตัวอักษรจริง → ✅ ใช้เลย ฟรี!
-2. **ตรวจหน้าว่าง** → ถ้ามีแค่เลขหน้า/ช่องว่าง → ⏭️ ข้าม ไม่เสีย token
-3. **ส่ง OCR** → เฉพาะหน้าสแกน/หน้าที่ text น้อย → 🔍 OCR (optimized)
+### 🌐 CattoTranslate — AI Book Translator
 
-| | ปกติ | Token Saver |
-|---|---|---|
-| ขนาดภาพ | 1600px PNG | 800px JPEG 50% |
-| Max tokens | 16,384 | 4,096 |
+- **Translate entire books** while preserving layout and formatting
+- Supports **PDF + EPUB** input → EPUB output
+- **EN↔TH** + more language pairs
+- 4 translation styles: Natural / Formal / Creative / Literal
+- **📖 Glossary** — custom term pairs injected into every prompt
+- **📖 EPUB Reader** — read translations in-browser
+- **✏️ Edit Translations** — click to edit any translated text
+- **💾 Resume & Recovery** — auto-save, export/import JSON backup
+- Context overlap for continuous translation across pages
 
-#### ⚡ Parallel Processing
-- **Token Saver ON** → 5 หน้าพร้อมกัน
-- **Token Saver OFF** → 3 หน้าพร้อมกัน
-
-#### 🤖 Multi-Provider OCR
-
-| | 🇹🇭 Typhoon OCR | ✨ Gemini Flash |
-|---|---|---|
-| ภาษาไทย | ⭐ เก่งมาก | ดี แต่อาจพลาดบ้าง |
-| ราคา | ตาม token | **ฟรี!** 15 RPM |
-| Model | `typhoon-ocr` | `gemini-2.0-flash` |
-
-#### 🖼️ Smart Image Embed
-- ฝังภาพประกอบจริงใน EPUB (เฉพาะ PDF ดิจิทัลที่มีรูปจริง)
-- **ไม่ฝังหน้าสแกน** — ป้องกัน EPUB เป็นรูปแปะกระดาษ
-
-#### ✏️ Edit OCR Results
-- แก้ไขข้อความ OCR ทีละหน้าก่อนสร้าง EPUB
-- มีปุ่ม ◀ ▶ เลื่อนหน้า, บันทึกกลับ localStorage
-
-#### 🛡️ Error Handling & Retry
-- **Exponential Backoff** — 429 retry อัตโนมัติ 3 ครั้ง
-- **Fatal Error Detection** — 401/402/403 หยุดทันที
-- **Auto-stop** — error ติดกัน 3 ครั้ง → หยุดอัตโนมัติ
-
-#### ▶️ Resume & Recovery
-- กดหยุด → ปุ่ม **"▶ ต่อจากหน้า X"** โผล่มา
-- 💾 localStorage บันทึกอัตโนมัติ — ปิดเว็บกลับมาทำต่อได้
-- 📕 อัปโหลด EPUB เดิมเพื่อ resume ได้
-- 📥 กู้คืนจาก localStorage → สร้าง EPUB ได้โดยไม่ต้องมี PDF
-
-#### 📊 Stats & Tracking
-- สถิติ: หน้าทั้งหมด / Text ฟรี / OCR / ข้าม / Tokens
-- 📈 Usage stats รวมทุกครั้ง (sessions, pages, tokens)
-- 💰 Cost estimate ก่อนเริ่ม
-
-### 🌐 CattoTranslate — AI Translate (translate.html)
-
-#### 📖 แปลหนังสือด้วย AI
-- รองรับ **PDF + EPUB** เป็น input
-- แปล **EN↔TH** สลับทิศทางได้
-- 4 สไตล์: ธรรมชาติ / เป็นทางการ / สร้างสรรค์ / ตรงตัว
-- Context overlap — แปลต่อเนื่องข้ามหน้า
-
-#### 🤖 AI Providers
-| | 🇹🇭 Typhoon V2 | ✨ Gemini Flash |
-|---|---|---|
-| Model | `typhoon-v2.5-30b-a3b-instruct` | `gemini-2.0-flash` |
-| ภาษาไทย | ⭐ เก่งมาก | ดี |
-| ราคา | ตาม token | ฟรี 15 RPM |
-
-#### 📖 Glossary (คลังศัพท์)
-- เพิ่ม/ลบคู่คำศัพท์ (เช่น "Hogwarts → ฮอกวอตส์")
-- บันทึกใน localStorage, inject เข้า prompt ทุกหน้าอัตโนมัติ
-
-#### 📖 EPUB Reader
-- อ่านผลแปลในเบราว์เซอร์เลยไม่ต้องดาวน์โหลด
-- Page navigation ◀ ▶
-
-#### ✏️ Edit Translated Text
-- คลิกข้อความแปลในช่อง "เปรียบเทียบ" → แก้ไขได้ทันที
-- บันทึกกลับ → สร้าง EPUB ใหม่ได้
-
-#### 💾 Resume & Recovery
-- บันทึกอัตโนมัติหลังแปลทุกหน้า
-- กู้คืน / แปลต่อ / Export-Import JSON backup
-- สารบัญตรวจจับอัตโนมัติ + แก้ไขได้
-
-### 🎨 ฟีเจอร์ร่วม (ทั้ง 2 หน้า)
-- 🌙 **Dark Mode** — สลับ Light/Dark ได้
-- 🌐 **i18n** — ภาษาไทย / English (OCR page)
-- 🔑 **Remember API Key** — จำ key ใน localStorage
-- 📄 **PDF Preview** — แสดง thumbnail หน้าแรก
-- 🔔 **Browser Notification** — แจ้งเตือนเมื่อเสร็จ
-- 🔊 **Sound Notification** — เสียง ding เมื่อเสร็จ
-- ⌨️ **Keyboard Shortcuts** — `Ctrl+Enter` = เริ่ม, `Escape` = หยุด/ปิด
-- 📈 **Usage Stats** — สถิติรวมทุกครั้ง
-- 📑 **สารบัญอัตโนมัติ** — ตรวจจับบท + แก้ไข/เพิ่ม/ลบ + rebuild EPUB
+### 🎨 Shared Features
+- 🌙 **Dark Mode**
+- 🌐 **i18n** — Thai / English UI
+- 🔑 **Remember API Key** in localStorage
+- 📄 **PDF Preview** thumbnail
+- 🔔 **Browser + Sound Notifications** on completion
+- ⌨️ **Keyboard Shortcuts** — `Ctrl+Enter` start, `Escape` stop
 
 ---
 
-## 🚀 วิธีใช้งาน
+## 🚀 Getting Started
 
-### ออนไลน์ (GitHub Pages)
-เข้าเว็บ → ใช้งานได้เลย!
+### Online
+Visit [cattodata.com/cattoepub](https://cattodata.com/cattoepub) — ready to use!
 
-### Offline
-1. ดาวน์โหลดทั้งโปรเจกต์
-2. เปิด `index.html` หรือ `translate.html` ในเบราว์เซอร์
-3. ใช้งานได้ทันที (ต้องมีเน็ตสำหรับ API เท่านั้น)
+### CattoEPUB
+1. **Get API Key** — Sign up at [opentyphoon.ai](https://opentyphoon.ai) → Profile → API Keys
+2. **Upload PDF** → enable Token Saver (recommended)
+3. **Click "เริ่มแปลงไฟล์"** → download EPUB + TXT
 
-### ขั้นตอน CattoEPUB
-1. **สมัคร API Key** — [Typhoon](https://opentyphoon.ai) หรือ [Gemini](https://aistudio.google.com/apikey) (ฟรี)
-2. **อัปโหลด PDF** → เปิด Token Saver (แนะนำ)
-3. **กด "เริ่มแปลงไฟล์"** → ดาวน์โหลด EPUB + TXT
-
-### ขั้นตอน CattoTranslate
-1. **อัปโหลด PDF/EPUB** → เลือกทิศทาง EN↔TH
-2. **เลือกสไตล์** + เพิ่ม Glossary (ถ้าต้องการ)
-3. **กด "เริ่มแปล"** → อ่าน/แก้ไข/ดาวน์โหลด EPUB
+### CattoTranslate
+1. **Upload PDF/EPUB** → select language direction (EN↔TH)
+2. **Choose style** + add Glossary terms if needed
+3. **Click "เริ่มแปล"** → read/edit/download EPUB
 
 ---
 
-## 🛠️ เทคโนโลยี
+## 🛠️ Tech Stack
 
-| ส่วน | เทคโนโลยี |
-|------|-----------|
-| PDF อ่าน | [PDF.js](https://mozilla.github.io/pdf.js/) 3.11.174 |
-| EPUB สร้าง | [JSZip](https://stuk.github.io/jszip/) 3.10.1 |
-| OCR | [Typhoon OCR](https://opentyphoon.ai) `typhoon-ocr` |
-| Translation | [Typhoon V2](https://opentyphoon.ai) `typhoon-v2.5-30b-a3b-instruct` |
-| AI (ฟรี) | [Gemini Flash](https://aistudio.google.com/apikey) `gemini-2.0-flash` |
+| Component | Technology |
+|-----------|-----------|
+| PDF Reader | [PDF.js](https://mozilla.github.io/pdf.js/) 3.11.174 |
+| EPUB Builder | [JSZip](https://stuk.github.io/jszip/) 3.10.1 |
+| OCR | [Typhoon OCR](https://opentyphoon.ai) |
+| Translation | [Typhoon V2](https://opentyphoon.ai) |
 | UI | Vanilla HTML/CSS/JS |
-| Font | Sarabun, Plus Jakarta Sans, JetBrains Mono |
+| Fonts | Sarabun, Plus Jakarta Sans, JetBrains Mono |
 | PWA | Service Worker + manifest.json |
 
 ---
 
-## 📁 โครงสร้างไฟล์
+## 📁 Project Structure
 
 ```
-epub_convert/
-├── index.html        ← 🐱 CattoEPUB — OCR Converter
+cattoepub/
+├── index.html        ← 🐱 CattoEPUB — PDF to EPUB Converter
 ├── translate.html    ← 🐱 CattoTranslate — AI Book Translator
+├── cattodata.png     ← Logo
 ├── manifest.json     ← PWA manifest
 ├── sw.js             ← Service Worker (offline caching)
-├── rainflow.png      ← Logo
-├── fix_epub.py       ← 🔧 Script ซ่อม EPUB ที่มีรูปฝังเกิน
-├── check_epub.py     ← 🔍 Script ตรวจสอบเนื้อหา EPUB
-└── README.md         ← ไฟล์นี้
+└── README.md         ← This file
 ```
 
 ---
 
-## ⚖️ เปรียบเทียบ Colab vs Web
+## ⚠️ Disclaimer
 
-| | Colab (ต้นฉบับ) | Web (เวอร์ชันนี้) |
-|---|---|---|
-| สภาพแวดล้อม | Google Colab (Python) | เบราว์เซอร์ |
-| ติดตั้ง | ต้อง pip install | ไม่ต้อง (PWA) |
-| Token Saver | ❌ | ✅ ประหยัด ~85% |
-| Parallel | ❌ ทีละหน้า | ✅ 3-5 หน้าพร้อมกัน |
-| Resume | ❌ | ✅ ปิดเว็บกลับมาต่อได้ |
-| Error Handling | พื้นฐาน | ✅ Retry + Auto-stop |
-| สารบัญ | ❌ | ✅ ตรวจจับ + แก้ไขได้ |
-| Cover | ❌ | ✅ ใส่ปกได้ |
-| แปลหนังสือ | ❌ | ✅ CattoTranslate EN↔TH |
-| Glossary | ❌ | ✅ คลังศัพท์ |
-| EPUB Reader | ❌ | ✅ อ่านในเบราว์เซอร์ |
-| Edit Text | ❌ | ✅ แก้ไขก่อนสร้าง EPUB |
-| Dark Mode | ❌ | ✅ |
-| Mobile | ❌ | ✅ Responsive + PWA |
-| Multi-Provider | ❌ Typhoon อย่างเดียว | ✅ Typhoon + Gemini Flash |
+This tool is intended for converting/translating files that you have the legal right to use, for personal reading only. It must not be used with copyrighted content without permission, or to distribute, publish, or sell converted/translated files. Users are solely responsible for their use of this tool. The developer is not liable for any unlawful use.
 
 ---
 
 ## 🙏 Credits
 
-- **Ken Takahashi** — ไอเดียและ Colab ต้นฉบับ ([Facebook](https://www.facebook.com/groups/ebookreader/posts/25556985560668239) · [Colab](https://colab.research.google.com/drive/1lgmYkuEeSUlVDLpplXCnFIQdJP9YMWjw?usp=sharing))
-- **cattoData** — Web adaptation + ฟีเจอร์เพิ่มเติมทั้งหมด
+- **Ken Takahashi** — Original idea & Colab notebook ([Facebook](https://www.facebook.com/groups/ebookreader/posts/25556985560668239) · [Colab](https://colab.research.google.com/drive/1lgmYkuEeSUlVDLpplXCnFIQdJP9YMWjw?usp=sharing))
+- **cattoData** — Web version + all additional features
 - **Typhoon** by [SCB 10X](https://opentyphoon.ai) — Thai OCR & Translation API
-- **Gemini Flash** by [Google](https://aistudio.google.com/apikey) — Free AI API
-- แชร์ใน [ชุมชนนักอ่าน eBook](https://www.facebook.com/groups/778412228952249/)
+- Shared in [ชุมชนนักอ่าน eBook](https://www.facebook.com/groups/778412228952249/) · Trusted by Thai ebook community 🇹🇭
+
+---
+
+## ☕ Support
+
+If these tools help you read better — [buy me a coffee](mailto:cattodata@gmail.com?subject=CattoEPUB%20—%20อยากสนับสนุน%20☕&body=สวัสดีครับ%20อยากสนับสนุน%20CattoEPUB%20ครับ%20ขอบัญชีสำหรับโอนด้วยครับ)! All tools are free and will remain free.
 
 ---
 
 ## 📄 License
 
-MIT License — ใช้ได้อิสระ ดัดแปลงได้ ขอแค่ให้เครดิต
+MIT License — Free to use and modify, just give credit.

@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CattoTranslate — AI Book Translator</title>
 <meta name="description" content="แปลหนังสือ PDF/EPUB ด้วย AI — แปลภาษา EN↔TH พร้อมจัดรูปแบบสวย ออก EPUB">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>">
+<link rel="icon" href="cattodata.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6FA8DD">
-<!-- Google AdSense -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4625693104435293" crossorigin="anonymous"></script>
+<!-- Google AdSense (disabled) -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4625693104435293" crossorigin="anonymous"></script> -->
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DBTHGF25YB"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-DBTHGF25YB');</script>
@@ -321,10 +321,10 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
 <header class="hero">
   <div class="hero-in">
     <div class="hero-title-row">
-      <img src="rainflow.png" alt="rainflowData" class="hero-avatar">
+      <img src="cattodata.png" alt="cattodata" class="hero-avatar">
       <h1>🐱 Catto<span>Translate</span> 🌐</h1>
     </div>
-    <p class="hero-desc" id="heroDesc">AI Book Translator<br>แปลหนังสือ PDF/EPUB ด้วย AI — แปลภาษา EN↔TH พร้อมจัดรูปแบบสวย</p>
+    <p class="hero-desc" id="heroDesc">Translate entire books while preserving layout and formatting<br>แปลหนังสือ PDF/EPUB ทั้งเล่มด้วย AI รองรับ EN↔TH จัดรูปแบบสวย พร้อมอ่านเป็น EPUB ได้ทันที</p>
     <div class="tags">
       <span class="tag" id="tagMulti">🌐 EN ↔ TH</span>
       <span class="tag" id="tagInput">📄 PDF + EPUB Input</span>
@@ -369,7 +369,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <div class="f"><label class="fl" id="ak-lbl">API Key</label><input class="fi" id="ak" type="password" placeholder="Typhoon/Gemini API Key"></div>
     <div class="f"><label class="fl">AI Provider</label><select class="fi" id="prov" style="cursor:pointer">
       <option value="typhoon">🇹🇭 Typhoon V2 (Thai เก่ง)</option>
-      <option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option>
+      <!-- <option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option> -->
     </select></div>
     <div id="typhoonWarn" style="display:none;margin:-.2rem 0 .4rem;padding:.4rem .7rem;background:#FFF3CD;border:1.5px solid #FFD43B;border-radius:8px;font-size:.68rem;color:#856404">⚠️ Typhoon เชี่ยวชาญภาษาไทยเป็นหลัก — สำหรับคู่ภาษาอื่นแนะนำใช้ Gemini</div>
 
@@ -467,6 +467,10 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <button class="btn btn-go" id="bgo" disabled>🌐 เริ่มแปล</button>
     <button class="btn btn-st" id="bst" disabled>■ หยุด</button>
   </div>
+  <div style="text-align:center;margin-bottom:.5rem;display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap">
+    <button onclick="reportBug()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;cursor:pointer;font-size:.72rem;font-weight:600;color:var(--text2);transition:border-color .2s,color .2s,box-shadow .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)';this.style.boxShadow='0 2px 8px rgba(239,68,68,0.15)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.boxShadow=''">🐛 Report Bug / แจ้งปัญหา</button>
+    <a href="mailto:cattodata@gmail.com?subject=CattoTranslate%20—%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20%E2%98%95&body=%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B5%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20CattoTranslate%20%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%82%E0%B8%AD%E0%B8%9A%E0%B8%B1%E0%B8%8D%E0%B8%8A%E0%B8%B5%E0%B8%AA%E0%B8%B3%E0%B8%AB%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B9%82%E0%B8%AD%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%A7%E0%B8%A2%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;cursor:pointer;font-size:.72rem;font-weight:600;color:var(--text2);text-decoration:none;transition:border-color .2s,color .2s,box-shadow .2s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.boxShadow='0 2px 8px rgba(139,92,246,0.15)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.boxShadow=''">☕ Buy Me a Coffee / สนับสนุนแอพนี้</a>
+  </div>
 
   <!-- Status -->
   <div class="sts" id="sts"></div>
@@ -501,17 +505,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     </div>
   </div>
 
-  <!-- AdSense -->
-  <div style="margin:1rem 0;padding:.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r2)">
-    <div style="font-size:.58rem;color:var(--text3);text-align:center;margin-bottom:.3rem">Advertisement</div>
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-4625693104435293"
-         data-ad-slot="8038681501"
-         data-ad-format="horizontal"
-         data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
+  <!-- AdSense (disabled) -->
 
   <!-- TOC -->
   <div class="toc" id="tocsec">
@@ -585,10 +579,23 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <strong>CattoTranslate</strong> by <strong style="color:var(--blue)">cattoData</strong><br>
     Powered by <a href="https://opentyphoon.ai" target="_blank">Typhoon</a> / <a href="https://ai.google.dev" target="_blank">Gemini</a> · <a href="https://mozilla.github.io/pdf.js/" target="_blank">PDF.js</a> · <a href="https://stuk.github.io/jszip/" target="_blank">JSZip</a><br>
     <span id="footPrivacy" style="font-size:.58rem;color:var(--text3)">ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ AI API · ไม่เก็บข้อมูลใดๆ</span>
+    <div style="margin-top:.5rem;padding:.5rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:.56rem;color:var(--text3);line-height:1.6;text-align:left">
+      ⚠️ <strong style="color:var(--text2)">ข้อตกลงการใช้งาน (Disclaimer)</strong><br>
+      เครื่องมือนี้มีไว้สำหรับแปลไฟล์ที่ผู้ใช้งานมีสิทธิ์ใช้งานอย่างถูกต้อง เพื่อการอ่านหรือใช้งานส่วนบุคคลเท่านั้น ห้ามนำไปใช้กับเนื้อหาที่ละเมิดลิขสิทธิ์ หรือเผยแพร่ แจกจ่าย หรือจำหน่ายผลลัพธ์โดยไม่ได้รับอนุญาต ผู้ใช้งานเป็นผู้รับผิดชอบต่อการใช้งานแต่เพียงผู้เดียว ผู้พัฒนาไม่รับผิดชอบต่อการใช้งานที่ผิดกฎหมายใด ๆ<br>
+      📝 <strong style="color:var(--text2)">หมายเหตุเกี่ยวกับความถูกต้องของการแปล</strong><br>
+      ผลลัพธ์ที่สร้างโดย AI อาจมีความคลาดเคลื่อนหรือไม่สมบูรณ์ กรุณาตรวจสอบความถูกต้องก่อนนำไปใช้อ้างอิง ผู้พัฒนาไม่รับผิดชอบต่อความเสียหายใด ๆ ที่เกิดจากข้อผิดพลาดของผลการแปล<br>
+      <span style="color:var(--text3);font-size:.52rem">⚠️ Disclaimer: This tool is intended for translating files that you have the legal right to use, for personal reading or reference only. It must not be used to process copyrighted content without permission, or to redistribute, publish, or sell the translated results. Users are solely responsible for how they use this tool. The developer is not liable for any unlawful use.<br>📝 AI Accuracy Notice: Translations generated by AI may contain errors or inaccuracies. Please review and verify the results before using them for reference or official purposes. The developer is not responsible for any loss or damage caused by translation errors.</span>
+    </div>
     <div style="margin-top:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap">
       <a href="https://github.com/cattodata/cattoepub" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:color .2s,border-color .2s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='';this.style.color=''">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
         GitHub
+      </a>
+      <a href="javascript:void(0)" onclick="reportBug()" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:color .15s,border-color .15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='';this.style.color=''">
+        🐛 Report Bug
+      </a>
+      <a href="mailto:cattodata@gmail.com?subject=CattoTranslate%20—%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20%E2%98%95&body=%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B5%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20CattoTranslate%20%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%82%E0%B8%AD%E0%B8%9A%E0%B8%B1%E0%B8%8D%E0%B8%8A%E0%B8%B5%E0%B8%AA%E0%B8%B3%E0%B8%AB%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B9%82%E0%B8%AD%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%A7%E0%B8%A2%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A" style="display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;text-decoration:none;color:var(--text2);font-size:.64rem;font-weight:600;transition:color .15s,border-color .15s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='';this.style.color=''">
+        ☕ Buy Me a Coffee
       </a>
       <img src="https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Frainflowdata.github.io%2FPDF-EPUB-Converter-Thai%2Ftranslate&label=visitors&countColor=%238b5cf6&labelColor=%236d28d9&style=flat-square" alt="visitors" style="height:20px">
     </div>
@@ -596,6 +603,12 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
 </div>
 
 <script>
+function reportBug(){
+  const title=encodeURIComponent('[Bug][Translate] ');
+  const body=encodeURIComponent('**อธิบายปัญหาที่พบ:**\n\n\n**ขั้นตอนที่ทำให้เกิดปัญหา:**\n1. \n2. \n3. \n\n**สิ่งที่คาดว่าจะเกิด:**\n\n\n---\n**Browser:** '+navigator.userAgent+'\n**URL:** '+location.href);
+  window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
+}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
