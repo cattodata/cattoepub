@@ -489,6 +489,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <div class="sb-row">
       <div class="sb-item"><div class="sb-val" id="sv-total">0</div><div class="sb-lbl">Pages</div></div>
       <div class="sb-item"><div class="sb-val" id="sv-done">0</div><div class="sb-lbl">Translated</div></div>
+      <div class="sb-item"><div class="sb-val" id="sv-ocr">0</div><div class="sb-lbl">🔍 OCR</div></div>
       <div class="sb-item"><div class="sb-val" id="sv-skip">0</div><div class="sb-lbl">Skipped</div></div>
       <div class="sb-item"><div class="sb-val" id="sv-toktotal">0</div><div class="sb-lbl">Tokens</div></div>
     </div>
@@ -612,7 +613,7 @@ function reportBug(){
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
-var tokenUsage={prompt:0,completion:0,total:0},stats={total:0,done:0,skipped:0};
+var tokenUsage={prompt:0,completion:0,total:0},stats={total:0,done:0,skipped:0,ocr:0};
 var _dir='en2th'; /* legacy compat — now derived from dropdowns */
 var startTime=0;
 var LANG_NAMES={en:'English',th:'Thai',zh:'Chinese',ja:'Japanese',ko:'Korean',fr:'French',de:'German',es:'Spanish',pt:'Portuguese',ru:'Russian',ar:'Arabic',vi:'Vietnamese',id:'Indonesian'};
@@ -768,7 +769,7 @@ $('compareToggle').onclick=function(){this.classList.toggle('open');$('compareBo
 function log(m,t=''){var d=document.createElement('div');d.className='ll '+(t==='error'?'e':t==='success'?'s':'');d.innerHTML='<span class="t">'+new Date().toLocaleTimeString('th',{hour12:0})+'</span>'+m;$('lb').appendChild(d);$('lb').scrollTop=9e9}
 function setSt(m,t){$('sts').className='sts '+t;$('sts').textContent=m}
 function fs(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
-function updateStats(){$('sv-total').textContent=stats.total;$('sv-done').textContent=stats.done;$('sv-skip').textContent=stats.skipped;$('sv-toktotal').textContent=tokenUsage.total.toLocaleString()}
+function updateStats(){$('sv-total').textContent=stats.total;$('sv-done').textContent=stats.done;$('sv-ocr').textContent=stats.ocr;$('sv-skip').textContent=stats.skipped;$('sv-toktotal').textContent=tokenUsage.total.toLocaleString()}
 
 /* ═══ Cost Estimate ═══ */
 function updateCost(){
@@ -882,6 +883,46 @@ async function extractPdfText(pageNum){
     tc.items.forEach(function(item){if(item.str)t+=item.str;if(item.hasEOL)t+='\n'});
     return t.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
   }catch(e){return ''}
+}
+
+/* ═══ OCR for scanned PDFs ═══ */
+async function renderPdfPage(n){
+  var d=800,fmt='image/jpeg',q=0.5;
+  var pg=await pdfDoc.getPage(n),v=pg.getViewport({scale:1}),s=d/Math.max(v.width,v.height),vp=pg.getViewport({scale:s});
+  var c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+  await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+  var u=c.toDataURL(fmt,q);
+  return{b:u.split(',')[1],w:Math.round(vp.width),h:Math.round(vp.height),mime:fmt}
+}
+
+async function ocrPage(b,w,h,k,mime){
+  var p='image_width: '+w+'\nimage_height: '+h+'\nExtract all text from this page in markdown.';
+  var maxTok=4096;
+  var imgUrl='data:'+(mime||'image/jpeg')+';base64,'+b;
+  var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+    body:JSON.stringify({model:'typhoon-ocr',messages:[{role:'user',content:[{type:'text',text:p},{type:'image_url',image_url:{url:imgUrl}}]}],max_tokens:maxTok,temperature:0.1})
+  });
+  if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('OCR API '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
+  var json=await r.json();
+  var text=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'':'';
+  var usage=json.usage||{prompt_tokens:0,completion_tokens:0,total_tokens:0};
+  return{text:text,usage:usage}
+}
+
+async function ocrRetry(b,w,h,k,mime){
+  for(var a=0;a<=3;a++){
+    try{return await ocrPage(b,w,h,k,mime)}
+    catch(e){
+      var st=e.httpStatus||0;
+      if(st===401){e.fatal=true;e.reason='invalid_key';throw e}
+      if(st===402||st===403){e.fatal=true;e.reason='quota_exceeded';throw e}
+      if(st===429&&a>=3){e.fatal=true;e.reason='rate_limit';throw e}
+      if(st===429){var d=Math.pow(2,a)*2000+Math.random()*1000;log('⏳ OCR rate limit — retry '+(a+1)+'/3 ('+(d/1000).toFixed(1)+'s)...','purple');await new Promise(function(r){setTimeout(r,d)});continue}
+      if(st>=500&&a<3){var d2=3000+Math.random()*2000;log('⏳ OCR server '+st+' — retry...','purple');await new Promise(function(r){setTimeout(r,d2)});continue}
+      throw e;
+    }
+  }
 }
 
 /* ═══ Cover ═══ */
@@ -1067,7 +1108,7 @@ async function startTranslate(){
 
   translatedPages=[];
   tokenUsage={prompt:0,completion:0,total:0};
-  stats={total:pages.length,done:0,skipped:0};
+  stats={total:pages.length,done:0,skipped:0,ocr:0};
 
   $('bgo').disabled=true;$('bst').disabled=false;
   $('res').classList.remove('on');$('compareSec').classList.remove('on');
@@ -1091,8 +1132,29 @@ async function startTranslate(){
     var pct=Math.round(stats.done/stats.total*100);
     $('pp').textContent=pct+'%';$('pb').style.width=pct+'%';
 
-    /* Skip blank pages */
-    if(!pageText||pageText.trim().length<10){
+    /* OCR scanned pages (PDF only) — if text layer is empty, try Typhoon OCR */
+    if((!pageText||pageText.trim().length<10)&&srcType==='pdf'){
+      log('🔍 หน้า '+pageNum+': ไม่มี text layer — กำลัง OCR...','purple');
+      try{
+        var img=await renderPdfPage(pageNum);
+        var ocrRes=await ocrRetry(img.b,img.w,img.h,key,img.mime);
+        var ocrText=(ocrRes.text||'').replace(/^```[\s\S]*?\n/,'').replace(/```$/,'').trim();
+        if(ocrRes.usage){tokenUsage.prompt+=ocrRes.usage.prompt_tokens||0;tokenUsage.completion+=ocrRes.usage.completion_tokens||0;tokenUsage.total+=ocrRes.usage.total_tokens||0}
+        if(ocrText.length>=10){
+          pageText=ocrText;stats.ocr++;
+          log('✅ OCR หน้า '+pageNum+': '+ocrText.length+' ตัวอักษร','success');
+        }else{
+          translatedPages.push('');stats.skipped++;stats.done++;
+          log('⏭️ หน้า '+pageNum+': ว่าง (OCR ไม่พบข้อความ) — ข้าม','purple');
+          updateStats();continue;
+        }
+      }catch(ocrErr){
+        if(ocrErr.fatal)throw ocrErr;
+        translatedPages.push('');stats.skipped++;stats.done++;
+        log('⚠️ หน้า '+pageNum+': OCR ล้มเหลว ('+ocrErr.message+') — ข้าม','error');
+        updateStats();continue;
+      }
+    }else if(!pageText||pageText.trim().length<10){
       translatedPages.push('');stats.skipped++;stats.done++;
       log('⏭️ หน้า '+pageNum+': ว่าง — ข้าม','purple');
       updateStats();continue;
@@ -1324,7 +1386,7 @@ $('rbBuild').onclick=async function(){
     if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
     if(saved.tgtLangCode)$('tgtLang').value=saved.tgtLangCode;
     updateDir();
-    stats=saved.stats||{total:translatedPages.length,done:translatedPages.filter(function(s){return s&&s.trim()}).length,skipped:0};
+    stats=saved.stats||{total:translatedPages.length,done:translatedPages.filter(function(s){return s&&s.trim()}).length,skipped:0,ocr:0};
     tokenUsage=saved.tokenUsage||{prompt:0,completion:0,total:0};
     chaps=saved.chaps||detectChapters(translatedPages);
     rtoc();
@@ -1355,7 +1417,7 @@ $('rbResume').onclick=function(){
   if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
   if(saved.tgtLangCode)$('tgtLang').value=saved.tgtLangCode;
   updateDir();
-  stats=saved.stats||{total:srcPages.length,done:translatedPages.length,skipped:0};
+  stats=saved.stats||{total:srcPages.length,done:translatedPages.length,skipped:0,ocr:0};
   tokenUsage=saved.tokenUsage||{prompt:0,completion:0,total:0};
   if(saved.style)$('style').value=saved.style;
   if(saved.meta){if(saved.meta.t)$('mt').value=saved.meta.t;if(saved.meta.a)$('ma').value=saved.meta.a;if(saved.meta.p)$('mp').value=saved.meta.p;if(saved.meta.l)$('ml').value=saved.meta.l;if(saved.meta.d)$('md').value=saved.meta.d}
@@ -1402,7 +1464,7 @@ $('rbFi').onchange=function(){
       if(data.srcLangCode)$('srcLang').value=data.srcLangCode;
       if(data.tgtLangCode)$('tgtLang').value=data.tgtLangCode;
       updateDir();
-      stats=data.stats||{total:translatedPages.length,done:good,skipped:0};
+      stats=data.stats||{total:translatedPages.length,done:good,skipped:0,ocr:0};
       tokenUsage=data.tokenUsage||{prompt:0,completion:0,total:0};
       if(data.meta){if(data.meta.t)$('mt').value=data.meta.t;if(data.meta.a)$('ma').value=data.meta.a;if(data.meta.p)$('mp').value=data.meta.p;if(data.meta.l)$('ml').value=data.meta.l;if(data.meta.d)$('md').value=data.meta.d}
       ck();updateCost();
