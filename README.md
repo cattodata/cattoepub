@@ -123,6 +123,27 @@ cattoepub/
 
 ---
 
+## ⚖️ Colab vs Web
+
+| | Colab (Original) | Web (CattoEPUB) |
+|---|---|---|
+| Environment | Google Colab (Python) | Browser |
+| Install | pip install required | No install (PWA) |
+| Token Saver | ❌ | ✅ Save ~85% |
+| Parallel | ❌ One page at a time | ✅ 3-5 pages |
+| Resume | ❌ | ✅ Close & come back |
+| Error Handling | Basic | ✅ Retry + Auto-stop |
+| Table of Contents | ❌ | ✅ Auto-detect + editable |
+| Cover | ❌ | ✅ |
+| Book Translation | ❌ | ✅ CattoTranslate EN↔TH |
+| Glossary | ❌ | ✅ Custom term pairs |
+| EPUB Reader | ❌ | ✅ Read in browser |
+| Edit Text | ❌ | ✅ Edit before building |
+| Dark Mode | ❌ | ✅ |
+| Mobile | ❌ | ✅ Responsive + PWA |
+
+---
+
 ## ⚠️ Disclaimer
 
 This tool is intended for converting/translating files that you have the legal right to use, for personal reading only. It must not be used with copyrighted content without permission, or to distribute, publish, or sell converted/translated files. Users are solely responsible for their use of this tool. The developer is not liable for any unlawful use.
