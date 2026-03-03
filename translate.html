@@ -17,8 +17,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="sarabun-fonts.js"></script>
+<!-- jsPDF removed: ไม่รองรับ Thai text shaping (สระ/วรรณยุกต์ทับกัน) → ใช้ HTML+Print แทน -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -504,7 +503,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
       <div class="card-h"><div class="card-n">✓</div><div class="card-t" id="dlTitle">ดาวน์โหลด</div></div>
       <div class="dlg">
         <a class="dlc" id="de" href="#" download onclick="if(this.href.endsWith('#')){event.preventDefault()}"><div class="dli epub">📗</div><div><div class="dln" id="dlEpub">EPUB (แปลแล้ว)</div><div class="dls" id="es">—</div></div></a>
-        <a class="dlc" id="dp" href="#" download style="display:none" onclick="if(this.href.endsWith('#')){event.preventDefault()}"><div class="dli pdf">📕</div><div><div class="dln" id="dlPdf">PDF (หนังสือ)</div><div class="dls" id="ps">—</div></div></a>
+        <a class="dlc" id="dp" href="javascript:void(0)" style="display:none" onclick="openPdfDirect()"><div class="dli pdf">📕</div><div><div class="dln" id="dlPdf">PDF (เปิด Print)</div><div class="dls" id="ps">กด Save as PDF</div></div></a>
         <a class="dlc" id="dt" href="#" download onclick="if(this.href.endsWith('#')){event.preventDefault()}"><div class="dli txt">📝</div><div><div class="dln" id="dlTxt">TXT (ข้อความ)</div><div class="dls" id="ts">—</div></div></a>
       </div>
     </div>
@@ -648,7 +647,7 @@ var TT={
     glossLabel:'📖 คลังศัพท์ (Glossary)',addGloss:'+ เพิ่มคำศัพท์',
     card3:'ข้อมูลหนังสือ',covText:'ปก',mtPh:'ชื่อหนังสือ',maPh:'ผู้แต่ง',mpPh:'สำนักพิมพ์',mdPh:'คำอธิบาย (ไม่บังคับ)',
     btnGo:'🌐 เริ่มแปล',btnStop:'■ หยุด',
-    dlTitle:'ดาวน์โหลด',dlEpub:'EPUB (แปลแล้ว)',dlPdf:'PDF (หนังสือ)',dlTxt:'TXT (ข้อความ)',
+    dlTitle:'ดาวน์โหลด',dlEpub:'EPUB (แปลแล้ว)',dlPdf:'PDF (เปิด Print)',dlTxt:'TXT (ข้อความ)',
     tocTitle:'สารบัญ',addChap:'+ เพิ่มบท',rebuildEpub:'🔄 สร้าง EPUB ใหม่',
     readEpub:'📖 อ่าน EPUB ในเบราว์เซอร์',
     compareText:'เปรียบเทียบต้นฉบับ / แปลแล้ว',cmpSrcH:'ต้นฉบับ',cmpTgtH:'แปลแล้ว',
@@ -671,7 +670,7 @@ var TT={
     glossLabel:'📖 Glossary',addGloss:'+ Add Term',
     card3:'Book Info',covText:'Cover',mtPh:'Book title',maPh:'Author',mpPh:'Publisher',mdPh:'Description (optional)',
     btnGo:'🌐 Start Translating',btnStop:'■ Stop',
-    dlTitle:'Download',dlEpub:'EPUB (Translated)',dlPdf:'PDF (Book)',dlTxt:'TXT (Text)',
+    dlTitle:'Download',dlEpub:'EPUB (Translated)',dlPdf:'PDF (Print Preview)',dlTxt:'TXT (Text)',
     tocTitle:'Table of Contents',addChap:'+ Add Chapter',rebuildEpub:'🔄 Rebuild EPUB',
     readEpub:'📖 Read EPUB in Browser',
     compareText:'Compare Original / Translated',cmpSrcH:'Original',cmpTgtH:'Translated',
@@ -1041,8 +1040,8 @@ $('brb').onclick=async function(){
     var eb=await buildEpub(translatedPages,chaps);
     var base=($('mt').value.trim()||'translated')+getTgtSuffix();
     $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
-    try{var pb=await buildPdf(translatedPages,chaps);if(pb){$('dp').href=URL.createObjectURL(pb);$('dp').download=base+'.pdf';$('ps').textContent=fs(pb.size);$('dp').style.display='';}else{$('dp').style.display='none';}}catch(pe){log('PDF: '+pe.message,'error');$('dp').style.display='none'}
-    setSt('✅ EPUB + PDF ใหม่พร้อมแล้ว','ok');log('✅ Rebuild done','success');
+    $('dp').style.display='';
+    setSt('✅ EPUB ใหม่พร้อมแล้ว (กดปุ่ม PDF เพื่อเปิด Print)','ok');log('✅ Rebuild done','success');
   }catch(e){setSt('❌ '+e.message,'err');log(e.message,'error')}
 };
 
@@ -1263,12 +1262,8 @@ async function startTranslate(){
       var base=($('mt').value.trim()||'translated')+getTgtSuffix();
       $('de').href=URL.createObjectURL(epubBlob);$('de').download=base+'.epub';$('es').textContent=fs(epubBlob.size);
       $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
-      /* PDF */
-      try{
-        var pdfBlob=await buildPdf(translatedPages,chaps);
-        if(pdfBlob){$('dp').href=URL.createObjectURL(pdfBlob);$('dp').download=base+'.pdf';$('ps').textContent=fs(pdfBlob.size);$('dp').style.display='';}
-        else{$('dp').style.display='none';}
-      }catch(pe){log('PDF build: '+pe.message,'error');$('dp').style.display='none'}
+      /* PDF (ใช้ HTML Print — กดปุ่มเพื่อเปิด) */
+      $('dp').style.display='';
       $('res').classList.add('on');
       /* Side-by-side preview */
       if(srcPages.length&&translatedPages.length){
@@ -1396,314 +1391,14 @@ function m2h(md){
 }
 function ex(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-/* ═══ Build PDF (หนังสือจริง) ═══ */
+/* ═══ Build PDF (ใช้ HTML + Browser Print — jsPDF ไม่รองรับ Thai text shaping) ═══ */
 async function buildPdf(pages,ch){
-  if(!window.jspdf||!window.jspdf.jsPDF)throw new Error('jsPDF library not loaded');
-  var jsPDF=window.jspdf.jsPDF;
-  var m={t:$('mt').value.trim()||'Translated Book',a:$('ma').value.trim()||'Unknown'};
-
-  /* ─── Helper: ArrayBuffer → base64 (chunk-safe) ─── */
-  function ab2b64(buf){
-    var bytes=new Uint8Array(buf);
-    var bin='';
-    var chunk=8192;
-    for(var i=0;i<bytes.length;i+=chunk){
-      bin+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));
-    }
-    return btoa(bin);
-  }
-
-  log('📄 PDF: กำลังเตรียมฟอนต์ไทย...');
-
-  /* ─── ใช้ฟอนต์ที่ฝังมากับโค้ดก่อน (ไม่ต้อง fetch) ─── */
-  var fontB64=null, fontBoldB64=null;
-  if(typeof SARABUN_REGULAR_B64!=='undefined' && SARABUN_REGULAR_B64){
-    fontB64=SARABUN_REGULAR_B64;
-    log('✅ PDF: ใช้ฟอนต์ Sarabun ที่ฝังมา');
-  }
-  if(typeof SARABUN_BOLD_B64!=='undefined' && SARABUN_BOLD_B64){
-    fontBoldB64=SARABUN_BOLD_B64;
-  }
-
-  /* ─── ถ้าไม่มีฟอนต์ฝัง → ลอง fetch จาก CDN ─── */
-  if(!fontB64){
-    var fontUrls=[
-      'https://fonts.gstatic.com/s/sarabun/v17/DtVjJx26TKEr37c9WBI.ttf',
-      'https://github.com/google/fonts/raw/main/ofl/sarabun/Sarabun-Regular.ttf'
-    ];
-    var boldUrls=[
-      'https://fonts.gstatic.com/s/sarabun/v17/DtVmJx26TKEr37c9YK5sulw.ttf',
-      'https://github.com/google/fonts/raw/main/ofl/sarabun/Sarabun-Bold.ttf'
-    ];
-    async function loadFont(urlList){
-      for(var i=0;i<urlList.length;i++){
-        try{var r=await fetch(urlList[i]);if(r.ok)return await r.arrayBuffer();}catch(e){}
-      }
-      return null;
-    }
-    log('📄 PDF: ลองโหลดฟอนต์จาก CDN...');
-    var fontData=await loadFont(fontUrls);
-    if(fontData) fontB64=ab2b64(fontData);
-    var fontBoldData=await loadFont(boldUrls);
-    if(fontBoldData) fontBoldB64=ab2b64(fontBoldData);
-  }
-
-  /* ─── ถ้ายังไม่มีฟอนต์เลย → fallback HTML Print ─── */
-  if(!fontB64){
-    log('⚠️ PDF: ไม่มีฟอนต์ → ใช้วิธี HTML Print','error');
-    return buildPdfViaHtml(pages,ch,m);
-  }
-
-  var doc=new jsPDF({unit:'mm',format:'a5',orientation:'portrait'});
-  var pw=doc.internal.pageSize.getWidth();
-  var ph=doc.internal.pageSize.getHeight();
-  var ml=15,mr=15,mtop=20,mb=20;
-  var cw=pw-ml-mr;
-  var fs=11;
-  var lh=fs*0.45;
-  var indent=8;
-
-  /* Register Thai font */
-  var fontName='helvetica';
-  try{
-    doc.addFileToVFS('Sarabun-Regular.ttf',fontB64);
-    doc.addFont('Sarabun-Regular.ttf','Sarabun','normal');
-    fontName='Sarabun';
-    log('✅ PDF: ลงทะเบียนฟอนต์ Sarabun สำเร็จ');
-  }catch(e){log('⚠️ PDF: ฟอนต์ regular error: '+e.message,'error')}
-  var hasBold=false;
-  if(fontBoldB64){
-    try{
-      doc.addFileToVFS('Sarabun-Bold.ttf',fontBoldB64);
-      doc.addFont('Sarabun-Bold.ttf','Sarabun','bold');
-      hasBold=true;
-    }catch(e){log('⚠️ PDF: ฟอนต์ bold error: '+e.message,'error')}
-  }
-  function setBold(){doc.setFont(fontName,hasBold?'bold':'normal')}
-  function setNormal(){doc.setFont(fontName,'normal')}
-
-  var pageNum=0;
-  var curY=mtop;
-
-  function addPage(){
-    doc.addPage();pageNum++;curY=mtop;
-  }
-  function checkSpace(need){
-    if(curY+need>ph-mb){addPage();return true;}
-    return false;
-  }
-  function drawPageNumber(){
-    setNormal();
-    doc.setFontSize(8);
-    doc.setTextColor(150,150,150);
-    doc.text(String(pageNum),pw/2,ph-10,{align:'center'});
-  }
-
-  /* ─── Cover Page ─── */
-  if(coverUrl){
-    try{
-      doc.addImage(coverUrl,'JPEG',0,0,pw,ph);
-    }catch(e){
-      setBold();doc.setFontSize(24);doc.setTextColor(30,30,30);
-      doc.text(m.t,pw/2,ph/2-10,{align:'center',maxWidth:cw});
-      doc.setFontSize(14);setNormal();doc.setTextColor(100,100,100);
-      doc.text(m.a,pw/2,ph/2+10,{align:'center'});
-    }
-    addPage();
-  }else{
-    setBold();doc.setFontSize(24);doc.setTextColor(30,30,30);
-    doc.text(m.t,pw/2,ph/2-15,{align:'center',maxWidth:cw});
-    doc.setFontSize(14);setNormal();doc.setTextColor(100,100,100);
-    doc.text(m.a,pw/2,ph/2+8,{align:'center'});
-    addPage();
-  }
-  pageNum=1;
-
-  /* ─── Content Pages ─── */
-  ch=ch||[];
-
-  /* Helper: strip markdown inline formatting for plain text output */
-  function stripMd(s){
-    return s.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1').replace(/_(.+?)_/g,'$1');
-  }
-
-  /* Helper: draw a horizontal rule */
-  function drawHr(){
-    checkSpace(8);
-    curY+=3;
-    doc.setDrawColor(180,180,180);
-    doc.setLineWidth(0.3);
-    doc.line(pw/2-25,curY,pw/2+25,curY);
-    curY+=5;
-  }
-
-  /* Helper: draw heading (centered, bold) */
-  function drawHeading(txt,size,spBefore,spAfter){
-    checkSpace(size+spBefore+spAfter);
-    curY+=spBefore;
-    setBold();
-    doc.setFontSize(size);
-    doc.setTextColor(30,30,30);
-    var hLines=doc.splitTextToSize(stripMd(txt),cw);
-    hLines.forEach(function(hl){
-      checkSpace(size*0.5);
-      doc.text(hl,pw/2,curY,{align:'center'});
-      curY+=size*0.5;
-    });
-    curY+=spAfter;
-    setNormal();
-    doc.setFontSize(fs);
-    doc.setTextColor(26,26,26);
-  }
-
-  /* Helper: draw subtitle (centered, gray, smaller) */
-  function drawSubtitle(txt){
-    checkSpace(10);
-    setNormal();
-    doc.setFontSize(12);
-    doc.setTextColor(90,90,90);
-    doc.text(stripMd(txt),pw/2,curY,{align:'center',maxWidth:cw});
-    curY+=6;
-    doc.setTextColor(26,26,26);
-    doc.setFontSize(fs);
-  }
-
-  /* Helper: draw a paragraph of body text */
-  function drawPara(txt,noIndent){
-    setNormal();
-    doc.setFontSize(fs);
-    doc.setTextColor(26,26,26);
-    var clean=stripMd(txt);
-    var textIndent=noIndent?0:indent;
-    var firstLineW=cw-textIndent;
-    var restW=cw;
-
-    var allLines=doc.splitTextToSize(clean,restW);
-    if(textIndent>0 && allLines.length>0){
-      var firstLines=doc.splitTextToSize(clean,firstLineW);
-      var firstLine=firstLines[0];
-      var remaining=clean.substring(firstLine.length).trim();
-      var restLines=remaining?doc.splitTextToSize(remaining,restW):[];
-      allLines=[firstLine].concat(restLines);
-    }
-
-    allLines.forEach(function(line,li){
-      checkSpace(lh);
-      var x=(li===0&&textIndent>0)?(ml+textIndent):ml;
-      doc.text(line,x,curY);
-      curY+=lh;
-    });
-    curY+=lh*0.35;
-  }
-
-  pages.forEach(function(text,pi){
-    if(!text||!text.trim())return;
-
-    /* ── ตรวจจับบทจาก ch array ── */
-    var isChapStart=false;
-    for(var ci=0;ci<ch.length;ci++){
-      if(ch[ci].pi===pi){isChapStart=ch[ci];break;}
-    }
-
-    if(isChapStart && pi>0){
-      addPage();
-      drawPageNumber();
-      curY=mtop+25;
-      drawHeading(isChapStart.title,18,0,5);
-      drawHr();
-      curY+=5;
-    }
-
-    /* ── แยกบรรทัด & ตรวจจับชนิดของแต่ละบรรทัด ── */
-    var paras=text.split(/\n/);
-    var afterHeading=!!isChapStart;
-
-    paras.forEach(function(para){
-      para=para.trim();
-      if(!para)return;
-
-      /* --- Markdown headings --- */
-      var mH1=para.match(/^#\s+(.+)$/);
-      var mH2=para.match(/^##\s+(.+)$/);
-      var mH3=para.match(/^###\s+(.+)$/);
-
-      /* --- Horizontal rules --- */
-      if(/^[-*_]{3,}\s*$/.test(para)||/^&gt;?\s*[-*_]{3,}/.test(para)){
-        drawHr();
-        return;
-      }
-
-      /* --- H3 --- */
-      if(mH3){
-        drawHeading(mH3[1],12,4,3);
-        afterHeading=true;
-        return;
-      }
-      /* --- H2 --- */
-      if(mH2){
-        drawHeading(mH2[1],14,5,3);
-        afterHeading=true;
-        return;
-      }
-      /* --- H1 (อาจเป็นชื่อเรื่อง/บท → ขึ้นหน้าใหม่ถ้าไม่ใช่หน้าแรก) --- */
-      if(mH1){
-        if(pi>0 || curY>mtop+10) { /* ไม่ใช่บรรทัดแรกสุด → ขึ้นหน้าใหม่ */
-          if(curY>mtop+5){drawPageNumber();addPage();}
-          curY=mtop+20;
-        }
-        drawHeading(mH1[1],18,0,3);
-        drawHr();
-        curY+=3;
-        afterHeading=true;
-        return;
-      }
-
-      /* --- Thai/English chapter headings (ไม่มี #) --- */
-      var isNaturalHeading=/^(บทที่|ตอนที่|Chapter|Part|CHAPTER|PART)\s/i.test(para) && para.length<80;
-      if(isNaturalHeading){
-        if(curY>mtop+10){drawPageNumber();addPage();curY=mtop+20;}
-        drawHeading(para,16,0,3);
-        drawHr();
-        curY+=3;
-        afterHeading=true;
-        return;
-      }
-
-      /* --- "โดย xxx" (author line) → subtitle style --- */
-      if(/^(โดย|by|By|BY)\s+/.test(para) && para.length<60){
-        drawSubtitle(para);
-        afterHeading=true;
-        return;
-      }
-
-      /* --- Short metadata-like lines (สรุปย่อ, โน้ตเพิ่มเติม, etc.) after heading --- */
-      if(afterHeading && para.length<60 && !/[.?!。]$/.test(para) && !/^[\u201c\u0022"«»'']/.test(para)){
-        drawSubtitle(para);
-        return;
-      }
-
-      /* --- Dialogue (บทพูด) --- */
-      var isDialogue=/^[\u201c\u201d\u0022\u00ab\u00bb\u2018\u2019\u201e\u201f""]/.test(para)||/^["«»'']/.test(para);
-      if(isDialogue){
-        drawPara(para,false); /* dialogue gets indent */
-        afterHeading=false;
-        return;
-      }
-
-      /* --- Normal paragraph --- */
-      drawPara(para,afterHeading);
-      afterHeading=false;
-    });
-
-    drawPageNumber();
-  });
-
-  log('✅ PDF: สร้างเสร็จ '+pageNum+' หน้า');
-  return doc.output('blob');
+  var m={t:$('mt').value.trim()||'Translated Book',a:$('ma').value.trim()||'Unknown',p:$('mp').value.trim(),l:$('ml').value.trim()||'th'};
+  return openPdfPreview(pages,ch,m);
 }
 
-/* ═══ Build PDF via HTML (fallback เมื่อโหลดฟอนต์ไม่ได้ เช่นรันจาก file://) ═══ */
-async function buildPdfViaHtml(pages,ch,m){
+/* ═══ เปิด PDF Preview (HTML + Browser Print — ภาษาไทยถูกต้อง 100%) ═══ */
+function openPdfPreview(pages,ch,m){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
   log('📄 PDF (HTML): กำลังสร้าง PDF จาก HTML...');
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(m.t)+'</title>';
@@ -1775,7 +1470,14 @@ async function buildPdfViaHtml(pages,ch,m){
   }else{
     log('⚠️ PDF: browser บล็อก popup → กรุณาอนุญาต popup แล้วลองใหม่','error');
   }
-  return null; /* fallback ไม่ return blob เพราะเปิด popup แทน */
+  return null; /* เปิด popup → ไม่มี blob */
+}
+
+/* ═══ เปิด PDF โดยตรง (สำหรับปุ่มกด) ═══ */
+function openPdfDirect(){
+  if(!translatedPages||!translatedPages.length){log('ยังไม่มีข้อมูลแปล','error');return;}
+  var m={t:$('mt').value.trim()||'Translated Book',a:$('ma').value.trim()||'Unknown',p:$('mp').value.trim(),l:$('ml').value.trim()||'th'};
+  openPdfPreview(translatedPages,chaps,m);
 }
 
 async function buildEpub(pages,ch){
@@ -2175,7 +1877,7 @@ $('rbBuild').onclick=async function(){
     var tb=new Blob(['\ufeff'+full],{type:'text/plain;charset=utf-8'});
     $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
     $('dt').href=URL.createObjectURL(tb);$('dt').download=base+'.txt';$('ts').textContent=fs(tb.size);
-    try{var pb=await buildPdf(translatedPages,chaps);if(pb){$('dp').href=URL.createObjectURL(pb);$('dp').download=base+'.pdf';$('ps').textContent=fs(pb.size);$('dp').style.display='';}else{$('dp').style.display='none';}}catch(pe){log('PDF: '+pe.message,'error');$('dp').style.display='none'}
+    $('dp').style.display='';
     $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
     if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
     $('readerBtn').style.display='block';
