@@ -18,6 +18,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="sarabun-fonts.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -1412,30 +1413,44 @@ async function buildPdf(pages,ch){
     return btoa(bin);
   }
 
-  /* ─── โหลดฟอนต์ไทย (Sarabun) จาก Google Fonts CDN ─── */
-  var fontUrls=[
-    {n:'regular',urls:[
-      'https://fonts.gstatic.com/s/sarabun/v15/DtVjJx26TKEr37c9YOZqulwm6gDXvwE.ttf',
-      'https://cdn.jsdelivr.net/gh/nicedoc/thai-fonts@main/Sarabun-Regular.ttf'
-    ]},
-    {n:'bold',urls:[
-      'https://fonts.gstatic.com/s/sarabun/v15/DtVmJx26TKEr37c9YNpoulwm6gDXvwGxUQ.ttf',
-      'https://cdn.jsdelivr.net/gh/nicedoc/thai-fonts@main/Sarabun-Bold.ttf'
-    ]}
-  ];
-  async function loadFont(urlList){
-    for(var i=0;i<urlList.length;i++){
-      try{var r=await fetch(urlList[i]);if(r.ok)return await r.arrayBuffer();}catch(e){}
-    }
-    return null;
-  }
-  log('📄 PDF: กำลังโหลดฟอนต์ไทย...');
-  var fontData=await loadFont(fontUrls[0].urls);
-  var fontBoldData=await loadFont(fontUrls[1].urls);
+  log('📄 PDF: กำลังเตรียมฟอนต์ไทย...');
 
-  /* ─── ถ้าโหลดฟอนต์ไม่ได้ (เช่นรันจาก file://) → ใช้วิธี HTML-to-PDF ─── */
-  if(!fontData){
-    log('⚠️ PDF: โหลดฟอนต์จาก CDN ไม่ได้ → ใช้วิธี HTML Print','error');
+  /* ─── ใช้ฟอนต์ที่ฝังมากับโค้ดก่อน (ไม่ต้อง fetch) ─── */
+  var fontB64=null, fontBoldB64=null;
+  if(typeof SARABUN_REGULAR_B64!=='undefined' && SARABUN_REGULAR_B64){
+    fontB64=SARABUN_REGULAR_B64;
+    log('✅ PDF: ใช้ฟอนต์ Sarabun ที่ฝังมา');
+  }
+  if(typeof SARABUN_BOLD_B64!=='undefined' && SARABUN_BOLD_B64){
+    fontBoldB64=SARABUN_BOLD_B64;
+  }
+
+  /* ─── ถ้าไม่มีฟอนต์ฝัง → ลอง fetch จาก CDN ─── */
+  if(!fontB64){
+    var fontUrls=[
+      'https://fonts.gstatic.com/s/sarabun/v17/DtVjJx26TKEr37c9WBI.ttf',
+      'https://github.com/google/fonts/raw/main/ofl/sarabun/Sarabun-Regular.ttf'
+    ];
+    var boldUrls=[
+      'https://fonts.gstatic.com/s/sarabun/v17/DtVmJx26TKEr37c9YK5sulw.ttf',
+      'https://github.com/google/fonts/raw/main/ofl/sarabun/Sarabun-Bold.ttf'
+    ];
+    async function loadFont(urlList){
+      for(var i=0;i<urlList.length;i++){
+        try{var r=await fetch(urlList[i]);if(r.ok)return await r.arrayBuffer();}catch(e){}
+      }
+      return null;
+    }
+    log('📄 PDF: ลองโหลดฟอนต์จาก CDN...');
+    var fontData=await loadFont(fontUrls);
+    if(fontData) fontB64=ab2b64(fontData);
+    var fontBoldData=await loadFont(boldUrls);
+    if(fontBoldData) fontBoldB64=ab2b64(fontBoldData);
+  }
+
+  /* ─── ถ้ายังไม่มีฟอนต์เลย → fallback HTML Print ─── */
+  if(!fontB64){
+    log('⚠️ PDF: ไม่มีฟอนต์ → ใช้วิธี HTML Print','error');
     return buildPdfViaHtml(pages,ch,m);
   }
 
@@ -1450,24 +1465,20 @@ async function buildPdf(pages,ch){
 
   /* Register Thai font */
   var fontName='helvetica';
-  if(fontData){
+  try{
+    doc.addFileToVFS('Sarabun-Regular.ttf',fontB64);
+    doc.addFont('Sarabun-Regular.ttf','Sarabun','normal');
+    fontName='Sarabun';
+    log('✅ PDF: ลงทะเบียนฟอนต์ Sarabun สำเร็จ');
+  }catch(e){log('⚠️ PDF: ฟอนต์ regular error: '+e.message,'error')}
+  var hasBold=false;
+  if(fontBoldB64){
     try{
-      var b64=ab2b64(fontData);
-      doc.addFileToVFS('Sarabun-Regular.ttf',b64);
-      doc.addFont('Sarabun-Regular.ttf','Sarabun','normal');
-      fontName='Sarabun';
-      log('✅ PDF: โหลดฟอนต์ Sarabun สำเร็จ');
-    }catch(e){log('⚠️ PDF: ฟอนต์ regular error: '+e.message,'error')}
-  }
-  if(fontBoldData){
-    try{
-      var b64b=ab2b64(fontBoldData);
-      doc.addFileToVFS('Sarabun-Bold.ttf',b64b);
+      doc.addFileToVFS('Sarabun-Bold.ttf',fontBoldB64);
       doc.addFont('Sarabun-Bold.ttf','Sarabun','bold');
+      hasBold=true;
     }catch(e){log('⚠️ PDF: ฟอนต์ bold error: '+e.message,'error')}
   }
-  /* ถ้าไม่มี bold ให้ fallback ไป normal */
-  var hasBold=!!fontBoldData;
   function setBold(){doc.setFont(fontName,hasBold?'bold':'normal')}
   function setNormal(){doc.setFont(fontName,'normal')}
 
