@@ -443,7 +443,10 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <div class="gloss" id="glossSec">
       <label class="fl" id="glossLabel">📖 คลังศัพท์ (Glossary)</label>
       <div class="gloss-pairs" id="glossPairs"></div>
-      <button class="btn btn-o" id="bAddGloss" style="font-size:.66rem">+ เพิ่มคำศัพท์</button>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+        <button class="btn btn-o" id="bAddGloss" style="font-size:.66rem">+ เพิ่มคำศัพท์</button>
+        <button class="btn btn-o" id="bScanNames" style="font-size:.66rem;color:var(--purple);border-color:var(--purple)" title="ใช้ AI สแกนชื่อตัวละคร/คำศัพท์สำคัญจากต้นฉบับอัตโนมัติ">🔍 <span id="scanNamesText">สแกนชื่อตัวละคร</span></button>
+      </div>
     </div>
   </div>
 
@@ -663,7 +666,7 @@ var TT={
     reviewLabel:'🔍 ตรวจทานอัตโนมัติ (Auto Review) — AI ตรวจสอบ+แก้ไขทุกหน้า',
     reviewProvLabel:'ตรวจทานโดย',optRevSelf:'🔄 ตัวเดิม (Self-review) — ใช้ AI เดิมตรวจซ้ำ',optRevGemini:'✨ Gemini Flash — ใช้ Gemini ตรวจทาน (แนะนำ)',
     reviewKeyLabel:'Gemini API Key (สำหรับตรวจทาน)',reviewNote:'⚠️ ใช้ token เพิ่ม ~2x แต่คุณภาพดีขึ้นมาก — ตรวจความถูกต้อง, ธรรมชาติ, ไม่หลอน',
-    glossLabel:'📖 คลังศัพท์ (Glossary)',addGloss:'+ เพิ่มคำศัพท์',
+    glossLabel:'📖 คลังศัพท์ (Glossary)',addGloss:'+ เพิ่มคำศัพท์',scanNames:'สแกนชื่อตัวละคร',
     card3:'ข้อมูลหนังสือ',covText:'ปก',mtPh:'ชื่อหนังสือ',maPh:'ผู้แต่ง',mpPh:'สำนักพิมพ์',mdPh:'คำอธิบาย (ไม่บังคับ)',
     btnGo:'🌐 เริ่มแปล',btnStop:'■ หยุด',
     dlTitle:'ดาวน์โหลด',dlEpub:'EPUB (แปลแล้ว)',dlPdf:'PDF (เปิด Print)',dlTxt:'TXT (ข้อความ)',
@@ -689,7 +692,7 @@ var TT={
     reviewLabel:'🔍 Auto Review — AI checks & corrects every page',
     reviewProvLabel:'Review by',optRevSelf:'🔄 Same AI (Self-review)',optRevGemini:'✨ Gemini Flash — Cross-review (recommended)',
     reviewKeyLabel:'Gemini API Key (for review)',reviewNote:'⚠️ Uses ~2x tokens but much better quality — checks accuracy, naturalness, no hallucination',
-    glossLabel:'📖 Glossary',addGloss:'+ Add Term',
+    glossLabel:'📖 Glossary',addGloss:'+ Add Term',scanNames:'Scan Character Names',
     card3:'Book Info',covText:'Cover',mtPh:'Book title',maPh:'Author',mpPh:'Publisher',mdPh:'Description (optional)',
     btnGo:'🌐 Start Translating',btnStop:'■ Stop',
     dlTitle:'Download',dlEpub:'EPUB (Translated)',dlPdf:'PDF (Print Preview)',dlTxt:'TXT (Text)',
@@ -728,6 +731,7 @@ function applyTrLang(){
   $('customPrompt').placeholder=t.promptPh;
   if($('glossLabel'))$('glossLabel').textContent=t.glossLabel;
   $('bAddGloss').textContent=t.addGloss;
+  if($('scanNamesText'))$('scanNamesText').textContent=t.scanNames;
   if($('reviewLabel'))$('reviewLabel').textContent=t.reviewLabel;
   if($('reviewProvLabel'))$('reviewProvLabel').textContent=t.reviewProvLabel;
   if($('optRevSelf'))$('optRevSelf').textContent=t.optRevSelf;
@@ -1216,8 +1220,10 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
     +'- Grapefruit แปลเป็น มะม่วง (ผิด → ต้องเป็น เกรปฟรุต)\n'
     +'- "3 cups" แปลเป็น "2 แก้ว" (ตัวเลขผิด)\n'
     +'- "John" หายไปจากคำแปล (ตกหล่น)\n'
-    +'- ชื่อตัวละครเปลี่ยนไปจากหน้าก่อน\n\n'
-    +'**ขั้นตอนที่ 2 — ตรวจเนื้อหาครบถ้วน (ทำในใจ):**\n'
+    +'- ชื่อตัวละครเปลี่ยนไปจากหน้าก่อน\n\n';
+  var glossPrompt=getGlossaryPrompt();
+  if(glossPrompt)prompt+='**คลังศัพท์ที่ต้องใช้ตามนี้เสมอ (ห้ามแปลเป็นอย่างอื่น):**\n'+glossPrompt+'\n\n';
+  prompt+='**ขั้นตอนที่ 2 — ตรวจเนื้อหาครบถ้วน (ทำในใจ):**\n'
     +'- เทียบจำนวนประโยค — ต้นฉบับมีกี่ประโยค? คำแปลมีกี่ประโยค? ตกหล่นหรือไม่?\n'
     +'- มีเนื้อหาที่คำแปลเพิ่มมาเองโดยไม่มีในต้นฉบับหรือไม่?\n\n'
     +'**ขั้นตอนที่ 3 — ตรวจความเป็นธรรมชาติ (ทำในใจ):**\n'
@@ -2237,6 +2243,78 @@ function addGlossRow(src,tgt){
 }
 $('bAddGloss').onclick=function(){addGlossRow('','')};
 (function(){var gl=loadGlossary();gl.forEach(function(p){addGlossRow(p.s,p.t)})})();
+
+/* ═══ Auto Scan Names ═══ */
+$('bScanNames').onclick=async function(){
+  if(!srcPages||!srcPages.length){log('⚠️ กรุณาอัปโหลดหนังสือก่อน','error');return}
+  var key=$('key').value.trim();
+  var prov=$('prov').value;
+  if(!key){log('⚠️ กรุณาใส่ API Key ก่อน','error');return}
+  var btn=$('bScanNames');btn.disabled=true;
+  var origText=$('scanNamesText').textContent;
+  $('scanNamesText').textContent='⏳ สแกน...';
+  try{
+    /* ใช้ 3 หน้าแรก (หรือทั้งหมดถ้าน้อยกว่า) */
+    var sample=srcPages.slice(0,Math.min(3,srcPages.length)).join('\n\n---\n\n');
+    if(sample.length>6000)sample=sample.slice(0,6000);
+    var srcL=LANG_NAMES[getSrcLang()]||'English';
+    var tgtL=LANG_NAMES[getTgtLang()]||'Thai';
+    var scanPrompt='คุณคือผู้เชี่ยวชาญด้านการแปลหนังสือ\n\n'
+      +'จากข้อความด้านล่าง (เป็น '+srcL+') ให้ทำรายการ:\n'
+      +'1. ชื่อตัวละครทุกตัว\n'
+      +'2. ชื่อสถานที่สำคัญ\n'
+      +'3. ชื่ออาหาร/เครื่องดื่มที่ปรากฏ\n'
+      +'4. คำศัพท์เฉพาะ/ศัพท์เทคนิคที่ควรแปลให้ตรงกัน\n\n'
+      +'ส่งผลลัพธ์เป็น JSON array เท่านั้น ในรูปแบบ:\n'
+      +'[{"src":"ชื่อในต้นฉบับ","tgt":"คำแปลที่ถูกต้องเป็น'+tgtL+'"}]\n\n'
+      +'**กฎ:**\n'
+      +'- ชื่อคนเกาหลี/ญี่ปุ่น/จีน: ทับศัพท์เป็นภาษาปลายทาง เช่น Sojung → โซจอง\n'
+      +'- ชื่อคนอังกฤษ: คงเป็นอังกฤษ เช่น John → John\n'
+      +'- ชื่ออาหาร: แปลให้ถูกต้อง เช่น Grapefruit → เกรปฟรุต (ไม่ใช่ ส้มโอ หรือ มะม่วง)\n'
+      +'- ส่งเฉพาะ JSON ห้ามมีอย่างอื่น ห้ามครอบด้วย ```\n\n'
+      +'---\n\n'+sample;
+    var result;
+    if(prov==="gemini"){
+      var r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+key,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{parts:[{text:scanPrompt}]}],generationConfig:{maxOutputTokens:4096,temperature:0.1}})
+      });
+      if(!r.ok)throw new Error("Gemini "+r.status);
+      var json=await r.json();
+      result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
+    }else{
+      var r=await fetch("https://api.opentyphoon.ai/v1/chat/completions",{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body:JSON.stringify({model:"typhoon-v2.5-30b-a3b-instruct",messages:[{role:"user",content:scanPrompt}],max_tokens:4096,temperature:0.1})
+      });
+      if(!r.ok)throw new Error("Typhoon "+r.status);
+      var json=await r.json();
+      result=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||"":"";
+    }
+    /* Parse JSON from response */
+    result=result.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
+    var names=JSON.parse(result);
+    if(!Array.isArray(names))throw new Error("ไม่ใช่ JSON array");
+    /* เพิ่มเข้า glossary (ไม่ซ้ำกับที่มีอยู่) */
+    var existing=loadGlossary();
+    var existingSrc=existing.map(function(p){return p.s.toLowerCase()});
+    var added=0;
+    names.forEach(function(n){
+      if(n.src&&n.tgt&&existingSrc.indexOf(n.src.toLowerCase())===-1){
+        addGlossRow(n.src,n.tgt);
+        existingSrc.push(n.src.toLowerCase());
+        added++;
+      }
+    });
+    saveGlossary();
+    log('🔍 สแกนเสร็จ: พบ '+names.length+' คำ, เพิ่มใหม่ '+added+' คำ','success');
+  }catch(e){
+    log('⚠️ สแกนล้มเหลว: '+e.message,'error');
+  }finally{
+    btn.disabled=false;
+    $('scanNamesText').textContent=origText;
+  }
+};
 function getGlossaryPrompt(){
   var pairs=saveGlossary();
   if(!pairs.length)return '';
