@@ -996,6 +996,43 @@ async function ocrRetry(b,w,h,k,mime){
   }
 }
 
+/* ═══ Review Diff — หาความแตกต่างระหว่างข้อความก่อน/หลังตรวจทาน ═══ */
+function reviewDiff(before,after){
+  if(before===after)return[];
+  var bLines=before.split(/\n/);
+  var aLines=after.split(/\n/);
+  var diffs=[];
+  /* เทียบทีละบรรทัด */
+  var maxLen=Math.max(bLines.length,aLines.length);
+  for(var i=0;i<maxLen;i++){
+    var bL=(bLines[i]||'').trim();
+    var aL=(aLines[i]||'').trim();
+    if(bL===aL)continue;
+    if(!bL&&aL){diffs.push({from:'(ว่าง)',to:aL.length>80?aL.slice(0,80)+'…':aL});continue}
+    if(bL&&!aL){diffs.push({from:bL.length>80?bL.slice(0,80)+'…':bL,to:'(ลบออก)'});continue}
+    /* หาส่วนที่ต่างกันในบรรทัด */
+    var words_b=bL.split(/(\s+)/);
+    var words_a=aL.split(/(\s+)/);
+    var diffParts=[];
+    var changed=false;
+    /* ถ้าสั้นพอ แสดงทั้งบรรทัด */
+    if(bL.length<120&&aL.length<120){
+      diffs.push({from:bL,to:aL});
+    }else{
+      /* ยาว → หา common prefix/suffix แล้วแสดงเฉพาะส่วนต่าง */
+      var pre=0;while(pre<bL.length&&pre<aL.length&&bL[pre]===aL[pre])pre++;
+      var suf=0;while(suf<bL.length-pre&&suf<aL.length-pre&&bL[bL.length-1-suf]===aL[aL.length-1-suf])suf++;
+      var bMid=bL.slice(Math.max(0,pre-10),bL.length-Math.max(0,suf-10));
+      var aMid=aL.slice(Math.max(0,pre-10),aL.length-Math.max(0,suf-10));
+      if(bMid.length>100)bMid=bMid.slice(0,100)+'…';
+      if(aMid.length>100)aMid=aMid.slice(0,100)+'…';
+      diffs.push({from:'…'+bMid+'…',to:'…'+aMid+'…'});
+    }
+    if(diffs.length>=8){diffs.push({from:'(+อีก)',to:'ดู log เพิ่มเติม'});break}
+  }
+  return diffs;
+}
+
 /* ═══ Cover ═══ */
 $('cz').onclick=()=>$('ci').click();
 $('ci').onchange=()=>{var f=$('ci').files[0];if(!f)return;coverMime=f.type;var r=new FileReader();r.onload=e=>{coverUrl=e.target.result;$('cz').classList.add('ok');var o=$('cz').querySelector('img');if(o)o.remove();var i=document.createElement('img');i.src=coverUrl;$('cz').appendChild(i);log('ปก: '+f.name,'success')};r.readAsDataURL(f)};
@@ -1169,25 +1206,35 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
   var tgtL=LANG_NAMES[getTgtLang()]||'Thai';
   var tgtNative=LANG_NATIVE[getTgtLang()]||tgtL;
 
-  var prompt='คุณคือบรรณาธิการและนักตรวจสอบการแปลมืออาชีพระดับสำนักพิมพ์\n\n'
-    +'**งาน:** ตรวจสอบคุณภาพการแปลจาก '+srcL+' เป็น '+tgtL+' และแก้ไขให้ดีขึ้น\n\n'
-    +'**ข้อความต้นฉบับ ('+srcL+'):**\n'+original+'\n\n'
-    +'**ข้อความแปลแล้ว ('+tgtL+'):**\n'+translated+'\n\n'
-    +'**สิ่งที่ต้องตรวจสอบ:**\n'
-    +'1. ✅ ความถูกต้อง — แปลตรงตามต้นฉบับหรือไม่? มีเนื้อหาตกหล่นหรือเพิ่มมาหรือไม่?\n'
-    +'2. ✅ ความเป็นธรรมชาติ — อ่านแล้วเป็น'+tgtNative+'ที่ดีหรือไม่? มีส่วนที่ฟัง "เป็นภาษาแปล" หรือ "ประหลาด" หรือไม่?\n'
-    +'3. ✅ สรรพนาม/ระดับภาษา — เหมาะกับบริบทหรือไม่?\n'
-    +'4. ✅ ชื่อเฉพาะ — สะกดถูกต้องและสม่ำเสมอหรือไม่?\n'
-    +'5. ✅ ไวยากรณ์ — ถูกต้องตามหลักภาษาหรือไม่?\n\n'
-    +'**กฎสำคัญที่สุด:**\n'
-    +'- ห้ามเพิ่มเนื้อหาใดๆ ที่ไม่มีในต้นฉบับ\n'
-    +'- ห้ามหลอน (hallucinate) ห้ามแต่งเอง ห้ามคิดเอง\n'
-    +'- ห้ามตัดเนื้อหาออก ถ้าต้นฉบับมีอะไร ผลลัพธ์ต้องมีด้วย\n'
-    +'- ถ้าการแปลดีอยู่แล้ว ให้ส่งกลับเหมือนเดิมไม่ต้องแก้\n'
-    +'- ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลีปน\n'
-    +'- คง markdown format เดิม (#, ##, ###, **, *, ---)\n'
-    +'- ส่งเฉพาะข้อความที่ตรวจสอบ/แก้ไขแล้ว ห้ามมีหมายเหตุ คำอธิบาย บันทึกการแก้ไข\n\n'
-    +'ส่งเฉพาะข้อความ'+tgtNative+'ที่ตรวจสอบแล้ว:';
+  var prompt='คุณคือผู้ตรวจสอบการแปลที่เข้มงวดที่สุด ทำงานเป็นขั้นตอน\n\n'
+    +'**ต้นฉบับ ('+srcL+'):**\n'+original+'\n\n'
+    +'**คำแปล ('+tgtL+'):**\n'+translated+'\n\n'
+    +'**ขั้นตอนที่ 1 — จับคู่คำศัพท์สำคัญ (ทำในใจ อย่าแสดง):**\n'
+    +'ให้ดึงทุกคำนาม, ชื่อคน, ชื่อสถานที่, ชื่ออาหาร/เครื่องดื่ม, ตัวเลข, วันเวลา, ชื่อยี่ห้อ, ศัพท์เทคนิค จากต้นฉบับ\n'
+    +'แล้วตรวจทีละคำว่าในคำแปลตรงกันหรือไม่\n'
+    +'ตัวอย่างข้อผิดพลาดที่ต้องจับ:\n'
+    +'- Grapefruit แปลเป็น มะม่วง (ผิด → ต้องเป็น เกรปฟรุต)\n'
+    +'- "3 cups" แปลเป็น "2 แก้ว" (ตัวเลขผิด)\n'
+    +'- "John" หายไปจากคำแปล (ตกหล่น)\n'
+    +'- ชื่อตัวละครเปลี่ยนไปจากหน้าก่อน\n\n'
+    +'**ขั้นตอนที่ 2 — ตรวจเนื้อหาครบถ้วน (ทำในใจ):**\n'
+    +'- เทียบจำนวนประโยค — ต้นฉบับมีกี่ประโยค? คำแปลมีกี่ประโยค? ตกหล่นหรือไม่?\n'
+    +'- มีเนื้อหาที่คำแปลเพิ่มมาเองโดยไม่มีในต้นฉบับหรือไม่?\n\n'
+    +'**ขั้นตอนที่ 3 — ตรวจความเป็นธรรมชาติ (ทำในใจ):**\n'
+    +'- สรรพนาม ระดับภาษา เหมาะกับบริบทหรือไม่?\n'
+    +'- มีส่วนที่ฟังแปลกๆ เป็น "ภาษาแปล" หรือไม่?\n'
+    +'- ไวยากรณ์'+tgtNative+'ถูกต้องหรือไม่?\n\n'
+    +'**ขั้นตอนที่ 4 — ส่งผลลัพธ์:**\n'
+    +'ส่งข้อความ'+tgtNative+'ที่แก้ไขแล้วทั้งหมด (ข้อความเต็ม ไม่ใช่แค่ส่วนที่แก้)\n\n'
+    +'**กฎเด็ดขาด:**\n'
+    +'- ∎ ห้ามเพิ่มเนื้อหาที่ไม่มีในต้นฉบับ\n'
+    +'- ∎ ห้ามหลอน (hallucinate) ห้ามแต่งเอง\n'
+    +'- ∎ ห้ามตัดเนื้อหาออก\n'
+    +'- ∎ ถ้าแปลดีอยู่แล้ว ส่งกลับเหมือนเดิม\n'
+    +'- ∎ ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลีปน\n'
+    +'- ∎ คง markdown (#, ##, ###, **, *, ---)\n'
+    +'- ∎ ส่งเฉพาะข้อความสุดท้าย ห้ามมีหมายเหตุ/คำอธิบาย/บันทึกการแก้\n\n'
+    +'ข้อความ'+tgtNative+'ที่ตรวจสอบและแก้ไขแล้ว:';
 
   var maxTok=8192;
   var temp=0.15; /* low temperature for review — เน้นความถูกต้อง */
@@ -1366,17 +1413,25 @@ async function startTranslate(){
         try{
           $('pt').textContent='🔍 ตรวจทานหน้า '+pageNum+'/'+end;
           log('🔍 หน้า '+pageNum+': กำลังตรวจทาน...','purple');
+          var beforeReview=translated;
           var revRes=await reviewRetry(pageText,translated,revKey,revProvider);
           var reviewed=cleanTranslation(revRes.text);
           tokenUsage.prompt+=(revRes.usage.prompt_tokens||0);
           tokenUsage.completion+=(revRes.usage.completion_tokens||0);
           tokenUsage.total+=(revRes.usage.total_tokens||0);
           /* ใช้ผลตรวจทานเฉพาะถ้าความยาวสมเหตุสมผล (ป้องกันการถูกตัด/หลอน) */
-          var origLen=translated.length;
+          var origLen=beforeReview.length;
           var revLen=reviewed.length;
           if(revLen>=origLen*0.5&&revLen<=origLen*2.0&&reviewed.trim().length>10){
             translated=reviewed;
-            log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ (เปลี่ยน '+(revLen-origLen>0?'+':'')+Math.round((revLen-origLen)/origLen*100)+'%)','success');
+            /* ── แสดง diff ว่าแก้อะไรบ้าง ── */
+            var diffs=reviewDiff(beforeReview,reviewed);
+            if(diffs.length>0){
+              log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ — แก้ '+diffs.length+' จุด:','success');
+              diffs.forEach(function(d){log('&nbsp;&nbsp;📝 <span style="color:#c0392b;text-decoration:line-through">'+ex(d.from)+'</span> → <span style="color:#27ae60;font-weight:600">'+ex(d.to)+'</span>')});
+            }else{
+              log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ — ไม่มีการแก้ไข ✓','success');
+            }
           }else{
             log('⚠️ หน้า '+pageNum+': ผลตรวจทานผิดปกติ ('+revLen+' vs '+origLen+') — ใช้แปลเดิม','error');
           }
