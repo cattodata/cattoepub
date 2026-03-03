@@ -423,6 +423,22 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
 
     <div class="f"><label class="fl" id="promptLabel">คำสั่งเพิ่มเติม (ไม่บังคับ)</label><textarea class="fi" id="customPrompt" rows="2" placeholder="เช่น: แปลชื่อตัวละครเป็นไทย, คงศัพท์เทคนิคเป็นภาษาอังกฤษ" id="promptPh"></textarea></div>
 
+    <!-- Review/Proofread -->
+    <div class="f" style="margin-top:.3rem">
+      <label class="fl" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" id="reviewOn" style="width:16px;height:16px;cursor:pointer">
+        <span id="reviewLabel">🔍 ตรวจทานอัตโนมัติ (Auto Review) — AI ตรวจสอบ+แก้ไขทุกหน้า</span>
+      </label>
+    </div>
+    <div id="reviewOpts" style="display:none;margin-top:.3rem;padding:.5rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">
+      <div class="f" style="margin-bottom:.3rem"><label class="fl" id="reviewProvLabel">ตรวจทานโดย</label><select class="fi" id="reviewProv" style="cursor:pointer">
+        <option value="self" id="optRevSelf">🔄 ตัวเดิม (Self-review) — ใช้ AI เดิมตรวจซ้ำ</option>
+        <option value="gemini" id="optRevGemini">✨ Gemini Flash — ใช้ Gemini ตรวจทาน (แนะนำ)</option>
+      </select></div>
+      <div class="f" id="reviewKeyRow" style="display:none"><label class="fl" id="reviewKeyLabel">Gemini API Key (สำหรับตรวจทาน)</label><input class="fi" id="reviewKey" type="password" placeholder="AIzaSy..."></div>
+      <div style="font-size:.65rem;color:var(--muted);margin-top:.2rem" id="reviewNote">⚠️ ใช้ token เพิ่ม ~2x แต่คุณภาพดีขึ้นมาก — ตรวจความถูกต้อง, ธรรมชาติ, ไม่หลอน</div>
+    </div>
+
     <!-- Glossary -->
     <div class="gloss" id="glossSec">
       <label class="fl" id="glossLabel">📖 คลังศัพท์ (Glossary)</label>
@@ -644,6 +660,9 @@ var TT={
     optCreative:'✨ แปลสร้างสรรค์ — เน้นความสวยงามของภาษา',optLiteral:'📝 แปลตรงตัว — ใกล้เคียงต้นฉบับที่สุด',
     spLabel:'เริ่มหน้า',epLabel:'สิ้นสุดหน้า',epPh:'0 = ทั้งหมด',
     promptLabel:'คำสั่งเพิ่มเติม (ไม่บังคับ)',promptPh:'เช่น: แปลชื่อตัวละครเป็นไทย, คงศัพท์เทคนิคเป็นภาษาอังกฤษ',
+    reviewLabel:'🔍 ตรวจทานอัตโนมัติ (Auto Review) — AI ตรวจสอบ+แก้ไขทุกหน้า',
+    reviewProvLabel:'ตรวจทานโดย',optRevSelf:'🔄 ตัวเดิม (Self-review) — ใช้ AI เดิมตรวจซ้ำ',optRevGemini:'✨ Gemini Flash — ใช้ Gemini ตรวจทาน (แนะนำ)',
+    reviewKeyLabel:'Gemini API Key (สำหรับตรวจทาน)',reviewNote:'⚠️ ใช้ token เพิ่ม ~2x แต่คุณภาพดีขึ้นมาก — ตรวจความถูกต้อง, ธรรมชาติ, ไม่หลอน',
     glossLabel:'📖 คลังศัพท์ (Glossary)',addGloss:'+ เพิ่มคำศัพท์',
     card3:'ข้อมูลหนังสือ',covText:'ปก',mtPh:'ชื่อหนังสือ',maPh:'ผู้แต่ง',mpPh:'สำนักพิมพ์',mdPh:'คำอธิบาย (ไม่บังคับ)',
     btnGo:'🌐 เริ่มแปล',btnStop:'■ หยุด',
@@ -667,6 +686,9 @@ var TT={
     optCreative:'✨ Creative — Emphasize language beauty',optLiteral:'📝 Literal — Closest to original',
     spLabel:'Start Page',epLabel:'End Page',epPh:'0 = All',
     promptLabel:'Custom Instructions (optional)',promptPh:'e.g.: Translate character names, keep technical terms in English',
+    reviewLabel:'🔍 Auto Review — AI checks & corrects every page',
+    reviewProvLabel:'Review by',optRevSelf:'🔄 Same AI (Self-review)',optRevGemini:'✨ Gemini Flash — Cross-review (recommended)',
+    reviewKeyLabel:'Gemini API Key (for review)',reviewNote:'⚠️ Uses ~2x tokens but much better quality — checks accuracy, naturalness, no hallucination',
     glossLabel:'📖 Glossary',addGloss:'+ Add Term',
     card3:'Book Info',covText:'Cover',mtPh:'Book title',maPh:'Author',mpPh:'Publisher',mdPh:'Description (optional)',
     btnGo:'🌐 Start Translating',btnStop:'■ Stop',
@@ -706,6 +728,12 @@ function applyTrLang(){
   $('customPrompt').placeholder=t.promptPh;
   if($('glossLabel'))$('glossLabel').textContent=t.glossLabel;
   $('bAddGloss').textContent=t.addGloss;
+  if($('reviewLabel'))$('reviewLabel').textContent=t.reviewLabel;
+  if($('reviewProvLabel'))$('reviewProvLabel').textContent=t.reviewProvLabel;
+  if($('optRevSelf'))$('optRevSelf').textContent=t.optRevSelf;
+  if($('optRevGemini'))$('optRevGemini').textContent=t.optRevGemini;
+  if($('reviewKeyLabel'))$('reviewKeyLabel').textContent=t.reviewKeyLabel;
+  if($('reviewNote'))$('reviewNote').textContent=t.reviewNote;
   if($('card3Title'))$('card3Title').textContent=t.card3;
   if($('covText'))$('covText').textContent=t.covText;
   $('mt').placeholder=t.mtPh;$('ma').placeholder=t.maPh;$('mp').placeholder=t.mpPh;$('md').placeholder=t.mdPh;
@@ -746,6 +774,23 @@ $('ak').oninput=function(){this.value=cleanKey(this.value);ck();localStorage.set
 $('ak').onpaste=function(){var self=this;setTimeout(function(){self.value=cleanKey(self.value);ck();localStorage.setItem('bepub_apikey',self.value)},0)};
 $('prov').onchange=function(){var v=this.value;localStorage.setItem('bepub_prov',v);if(v==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...'}else{$('ak-lbl').textContent='Typhoon API Key';$('ak').placeholder='typhoon-xxxxxxxx'}ck();updateDir()};
 
+/* Review toggle */
+$('reviewOn').onchange=function(){
+  $('reviewOpts').style.display=this.checked?'block':'none';
+  localStorage.setItem('bepub_review',this.checked?'1':'0');
+  updateCost();
+};
+$('reviewProv').onchange=function(){
+  var v=this.value;
+  localStorage.setItem('bepub_reviewProv',v);
+  $('reviewKeyRow').style.display=(v==='gemini')?'block':'none';
+};
+$('reviewKey').oninput=function(){this.value=cleanKey(this.value);localStorage.setItem('bepub_reviewKey',this.value)};
+/* Restore review settings */
+if(localStorage.getItem('bepub_review')==='1'){$('reviewOn').checked=true;$('reviewOpts').style.display='block'}
+if(localStorage.getItem('bepub_reviewProv')){$('reviewProv').value=localStorage.getItem('bepub_reviewProv');if($('reviewProv').value==='gemini')$('reviewKeyRow').style.display='block'}
+if(localStorage.getItem('bepub_reviewKey'))$('reviewKey').value=localStorage.getItem('bepub_reviewKey');
+
 /* ═══ Language Direction ═══ */
 function updateDir(){
   _dir=getSrcLang()+'2'+getTgtLang();
@@ -783,10 +828,12 @@ function updateCost(){
   var numPages=end-s0+1;if(numPages<1)numPages=srcPages.length;
   var avgChars=srcPages.slice(s0-1,end).reduce(function(a,p){return a+p.length},0)/numPages;
   var tokPerPage=Math.round(avgChars*1.5);
-  var totalTok=numPages*tokPerPage*2;/* input + output */
+  var reviewMul=$('reviewOn').checked?2:1;
+  var totalTok=numPages*tokPerPage*2*reviewMul;/* input + output (* review) */
   var prov=$('prov').value,cost;
-  if(prov==='gemini'){cost='ฟรี (Gemini Flash free tier)'}
-  else{var usd=(totalTok/1000*0.003).toFixed(2);cost='~$'+usd+' USD (~'+Math.round(totalTok/1000)+'K tokens)'}
+  var reviewTag=$('reviewOn').checked?' (รวมตรวจทาน)':'';
+  if(prov==='gemini'){cost='ฟรี (Gemini Flash free tier)'+reviewTag}
+  else{var usd=(totalTok/1000*0.003).toFixed(2);cost='~$'+usd+' USD (~'+Math.round(totalTok/1000)+'K tokens)'+reviewTag}
   $('costBar').innerHTML='💰 ประมาณ: <b>'+cost+'</b> · '+numPages+' หน้า · ~'+tokPerPage+' tok/หน้า';
   $('costBar').style.display='block';
 }
@@ -1116,6 +1163,88 @@ async function translateRetry(text,key,style,customPrompt,prevContext){
   }
 }
 
+/* ═══ Review/Proofread Translation ═══ */
+async function reviewChunk(original,translated,reviewKey,reviewProvider){
+  var srcL=LANG_NAMES[getSrcLang()]||'English';
+  var tgtL=LANG_NAMES[getTgtLang()]||'Thai';
+  var tgtNative=LANG_NATIVE[getTgtLang()]||tgtL;
+
+  var prompt='คุณคือบรรณาธิการและนักตรวจสอบการแปลมืออาชีพระดับสำนักพิมพ์\n\n'
+    +'**งาน:** ตรวจสอบคุณภาพการแปลจาก '+srcL+' เป็น '+tgtL+' และแก้ไขให้ดีขึ้น\n\n'
+    +'**ข้อความต้นฉบับ ('+srcL+'):**\n'+original+'\n\n'
+    +'**ข้อความแปลแล้ว ('+tgtL+'):**\n'+translated+'\n\n'
+    +'**สิ่งที่ต้องตรวจสอบ:**\n'
+    +'1. ✅ ความถูกต้อง — แปลตรงตามต้นฉบับหรือไม่? มีเนื้อหาตกหล่นหรือเพิ่มมาหรือไม่?\n'
+    +'2. ✅ ความเป็นธรรมชาติ — อ่านแล้วเป็น'+tgtNative+'ที่ดีหรือไม่? มีส่วนที่ฟัง "เป็นภาษาแปล" หรือ "ประหลาด" หรือไม่?\n'
+    +'3. ✅ สรรพนาม/ระดับภาษา — เหมาะกับบริบทหรือไม่?\n'
+    +'4. ✅ ชื่อเฉพาะ — สะกดถูกต้องและสม่ำเสมอหรือไม่?\n'
+    +'5. ✅ ไวยากรณ์ — ถูกต้องตามหลักภาษาหรือไม่?\n\n'
+    +'**กฎสำคัญที่สุด:**\n'
+    +'- ห้ามเพิ่มเนื้อหาใดๆ ที่ไม่มีในต้นฉบับ\n'
+    +'- ห้ามหลอน (hallucinate) ห้ามแต่งเอง ห้ามคิดเอง\n'
+    +'- ห้ามตัดเนื้อหาออก ถ้าต้นฉบับมีอะไร ผลลัพธ์ต้องมีด้วย\n'
+    +'- ถ้าการแปลดีอยู่แล้ว ให้ส่งกลับเหมือนเดิมไม่ต้องแก้\n'
+    +'- ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลีปน\n'
+    +'- คง markdown format เดิม (#, ##, ###, **, *, ---)\n'
+    +'- ส่งเฉพาะข้อความที่ตรวจสอบ/แก้ไขแล้ว ห้ามมีหมายเหตุ คำอธิบาย บันทึกการแก้ไข\n\n'
+    +'ส่งเฉพาะข้อความ'+tgtNative+'ที่ตรวจสอบแล้ว:';
+
+  var maxTok=8192;
+  var temp=0.15; /* low temperature for review — เน้นความถูกต้อง */
+
+  if(reviewProvider==='gemini'){
+    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+reviewKey,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTok,temperature:temp}})
+    });
+    if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Gemini Review '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
+    var json=await r.json();
+    var reviewed=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
+    var um=json.usageMetadata||{};
+    return{text:reviewed,usage:{prompt_tokens:um.promptTokenCount||0,completion_tokens:um.candidatesTokenCount||0,total_tokens:um.totalTokenCount||0}};
+  }else{
+    /* self-review: same provider */
+    var mainProv=$('prov').value;
+    if(mainProv==='gemini'){
+      var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+reviewKey,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTok,temperature:temp}})
+      });
+      if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Gemini Review '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
+      var json=await r.json();
+      var reviewed=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
+      var um=json.usageMetadata||{};
+      return{text:reviewed,usage:{prompt_tokens:um.promptTokenCount||0,completion_tokens:um.candidatesTokenCount||0,total_tokens:um.totalTokenCount||0}};
+    }else{
+      var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+reviewKey},
+        body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'คุณคือบรรณาธิการตรวจสอบการแปล ส่งเฉพาะข้อความที่แก้ไขแล้ว ห้ามมีหมายเหตุ/คำอธิบาย ห้ามหลอน ห้ามเพิ่มเนื้อหา ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลี'},{role:'user',content:prompt}],max_tokens:maxTok,temperature:temp})
+      });
+      if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Review API '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
+      var json=await r.json();
+      var reviewed=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'':'';
+      var usage=json.usage||{prompt_tokens:0,completion_tokens:0,total_tokens:0};
+      return{text:reviewed,usage:usage};
+    }
+  }
+}
+
+async function reviewRetry(original,translated,reviewKey,reviewProvider){
+  for(var a=0;a<=2;a++){
+    try{return await reviewChunk(original,translated,reviewKey,reviewProvider)}
+    catch(e){
+      var st=e.httpStatus||0;
+      if(st===401||st===402||st===403){log('⚠️ Review key error — ข้ามการตรวจทาน','error');return{text:translated,usage:{prompt_tokens:0,completion_tokens:0,total_tokens:0}}}
+      if(st===429){var d=Math.pow(2,a)*2000+Math.random()*1000;log('⏳ Review rate limit — retry '+(a+1)+'/2','purple');await new Promise(function(r){setTimeout(r,d)});continue}
+      if(st>=500&&a<2){await new Promise(function(r){setTimeout(r,3000)});continue}
+      /* On review failure, just return the original translation */
+      log('⚠️ Review failed ('+e.message+') — ใช้แปลเดิม','error');
+      return{text:translated,usage:{prompt_tokens:0,completion_tokens:0,total_tokens:0}};
+    }
+  }
+  return{text:translated,usage:{prompt_tokens:0,completion_tokens:0,total_tokens:0}};
+}
+
 /* ═══ Main Process ═══ */
 $('bgo').onclick=function(){startTranslate().catch(function(e){log('❌ ระบบ: '+e.message,'error');setSt('❌ '+e.message,'err');isProc=false;$('bgo').disabled=false;$('bst').disabled=true})};
 $('bst').onclick=()=>{isCancelled=true;log('🛑 หยุด','error')};
@@ -1139,8 +1268,15 @@ async function startTranslate(){
   $('res').classList.remove('on');$('compareSec').classList.remove('on');
   $('prg').classList.add('on','run');$('statbar').classList.add('on');
   var dirLabel=getDirLabel();
-  setSt('🌐 กำลังแปล '+dirLabel+' · '+pages.length+' หน้า','info');
-  log('🌐 เริ่มแปล: '+dirLabel+' · '+pages.length+' หน้า · สไตล์: '+style);
+  /* Review settings */
+  var doReview=$('reviewOn').checked;
+  var revProv=$('reviewProv').value; /* 'self' or 'gemini' */
+  var revKey=(revProv==='gemini')?cleanKey($('reviewKey').value):key; /* gemini uses separate key, self uses same key */
+  var revProvider=(revProv==='gemini')?'gemini':$('prov').value; /* actual API to call */
+  if(doReview&&revProv==='gemini'&&!revKey){log('⚠️ ไม่มี Gemini Review Key → ปิดการตรวจทาน','error');doReview=false}
+
+  setSt('🌐 กำลังแปล '+dirLabel+' · '+pages.length+' หน้า'+(doReview?' (+ ตรวจทาน)':''),'info');
+  log('🌐 เริ่มแปล: '+dirLabel+' · '+pages.length+' หน้า · สไตล์: '+style+(doReview?' · ✅ ตรวจทานด้วย '+(revProv==='gemini'?'Gemini':'ตัวเอง'):''));
   updateStats();
 
   var consErr=0,fatalErr=null;
@@ -1224,6 +1360,31 @@ async function startTranslate(){
         }
         log('✅ หน้า '+pageNum+': '+translated.length+' chars ('+chunks.length+' chunks)','success');
       }
+
+      /* ── Review/Proofread pass ── */
+      if(doReview&&translated.trim()&&!isCancelled){
+        try{
+          $('pt').textContent='🔍 ตรวจทานหน้า '+pageNum+'/'+end;
+          log('🔍 หน้า '+pageNum+': กำลังตรวจทาน...','purple');
+          var revRes=await reviewRetry(pageText,translated,revKey,revProvider);
+          var reviewed=cleanTranslation(revRes.text);
+          tokenUsage.prompt+=(revRes.usage.prompt_tokens||0);
+          tokenUsage.completion+=(revRes.usage.completion_tokens||0);
+          tokenUsage.total+=(revRes.usage.total_tokens||0);
+          /* ใช้ผลตรวจทานเฉพาะถ้าความยาวสมเหตุสมผล (ป้องกันการถูกตัด/หลอน) */
+          var origLen=translated.length;
+          var revLen=reviewed.length;
+          if(revLen>=origLen*0.5&&revLen<=origLen*2.0&&reviewed.trim().length>10){
+            translated=reviewed;
+            log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ (เปลี่ยน '+(revLen-origLen>0?'+':'')+Math.round((revLen-origLen)/origLen*100)+'%)','success');
+          }else{
+            log('⚠️ หน้า '+pageNum+': ผลตรวจทานผิดปกติ ('+revLen+' vs '+origLen+') — ใช้แปลเดิม','error');
+          }
+        }catch(revErr){
+          log('⚠️ หน้า '+pageNum+': ตรวจทานล้มเหลว — ใช้แปลเดิม','error');
+        }
+      }
+
       translatedPages.push(translated);
       full+=translated+'\n\n--- Page Break ---\n\n';
       stats.done++;consErr=0;
