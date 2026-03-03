@@ -847,7 +847,8 @@ async function handleFile(f){
         var parser=new DOMParser(),opfDoc=parser.parseFromString(opfXml,'application/xml');
         /* Extract metadata */
         var gm=function(tag){var el=opfDoc.querySelector(tag);return el?el.textContent.trim():''};
-        var mt=gm('title'),ma=gm('creator'),mp=gm('publisher'),ml=gm('language'),md=gm('description');
+        var gmHtml=function(tag){var el=opfDoc.querySelector(tag);if(!el)return '';var raw=el.innerHTML||el.textContent||'';/* Strip HTML tags, convert <br> and <p> to newlines */raw=raw.replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>\s*<p[^>]*>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"');return raw.trim()};
+        var mt=gm('title'),ma=gm('creator'),mp=gm('publisher'),ml=gm('language'),md=gmHtml('description');
         if(mt)$('mt').value=mt;if(ma&&ma!=='Unknown')$('ma').value=ma;if(mp)$('mp').value=mp;if(md)$('md').value=md;
         /* Get spine order */
         var opfDir=opfPath.replace(/[^\/]*$/,'');
