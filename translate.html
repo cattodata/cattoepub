@@ -646,7 +646,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v1.8';
+var APP_VERSION='v1.9';
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
@@ -868,16 +868,56 @@ function sendNotif(title,body){if(!('Notification' in window))return;if(Notifica
 
 /* ═══ Upload ═══ */
 var dz=$('dz'),fi=$('fi');
-dz.onclick=()=>fi.click();
+dz.onclick=()=>{fi.value='';fi.click()};
 dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
 dz.ondragleave=()=>dz.classList.remove('drag');
 dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])};
 fi.onchange=()=>{if(fi.files[0])handleFile(fi.files[0])};
 
+function resetBookState(){
+  /* Clear all old state when loading new book */
+  srcFile=null;srcPages=[];translatedPages=[];pdfDoc=null;coverUrl=undefined;coverMime=undefined;
+  tokenUsage={prompt:0,completion:0,total:0};stats={total:0,done:0,skipped:0,ocr:0};
+  /* Clear UI */
+  $('mt').value='';$('ma').value='';$('mp').value='';$('md').value='';
+  $('mt').placeholder='ชื่อหนังสือ';
+  $('fn').style.display='none';$('fn').textContent='';
+  $('srcInfo').style.display='none';$('srcInfo').innerHTML='';
+  $('pdfPv').style.display='none';
+  $('costBar').style.display='none';
+  $('sts').className='sts';$('sts').textContent='';
+  $('sp').value='1';$('ep').value='0';
+  /* Clear cover */
+  $('cz').classList.remove('ok');
+  var covImgs=$('cz').querySelectorAll('img');covImgs.forEach(function(img){img.remove()});
+  /* Clear results/downloads */
+  $('res').style.display='none';
+  $('de').href='#';$('es').textContent='—';
+  $('dt').href='#';$('ts').textContent='—';
+  $('dp').style.display='none';
+  /* Clear TOC */
+  $('tocsec').style.display='none';$('tocl').innerHTML='';
+  /* Clear reader */
+  $('readerBtn').style.display='none';
+  /* Clear progress */
+  $('prg').style.display='none';$('pb').style.width='0%';$('pp').textContent='0%';
+  /* Clear stats */
+  updateStats();
+  /* Clear dropzone state */
+  dz.classList.remove('ok');
+  log('🔄 รีเซ็ตข้อมูลเก่า','purple');
+}
+
 async function handleFile(f){
-  var name=f.name.toLowerCase();
-  if(!name.endsWith('.pdf')&&!name.endsWith('.epub'))return setSt('รองรับเฉพาะ .pdf และ .epub','err');
-  srcFile=f;srcPages=[];translatedPages=[];
+  var name=f.name.toLowerCase().trim();
+  if(!name.endsWith('.pdf')&&!name.endsWith('.epub')){
+    setSt('รองรับเฉพาะ .pdf และ .epub (ได้รับ: '+f.name+')','err');
+    log('⚠️ ไม่รองรับไฟล์: '+f.name+' (type: '+f.type+')','error');
+    return;
+  }
+  /* Reset everything from previous book */
+  resetBookState();
+  srcFile=f;
   dz.classList.add('ok');
   $('fn').style.display='block';$('fn').textContent=f.name+' ('+fs(f.size)+')';
 
