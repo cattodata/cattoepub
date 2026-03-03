@@ -377,7 +377,12 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <div class="f"><label class="fl" id="ak-lbl">API Key</label><input class="fi" id="ak" type="password" placeholder="Typhoon/Gemini API Key"></div>
     <div class="f"><label class="fl">AI Provider</label><select class="fi" id="prov" style="cursor:pointer">
       <option value="typhoon">🇹🇭 Typhoon V2 (Thai เก่ง)</option>
-      <!-- <option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option> -->
+      <option value="gemini">✨ Gemini Flash (ฟรี 15 RPM)</option>
+    </select></div>
+    <div id="geminiModelRow" style="display:none;margin:-.2rem 0 .4rem"><label style="font-size:.68rem;color:var(--muted);margin-right:.3rem">Gemini Model:</label><select class="fi" id="geminiModel" style="cursor:pointer;font-size:.75rem;padding:.25rem .4rem;max-width:260px">
+      <option value="gemini-2.0-flash">gemini-2.0-flash (เร็ว)</option>
+      <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (เบา)</option>
+      <option value="gemini-1.5-flash">gemini-1.5-flash (เสถียร)</option>
     </select></div>
     <div id="typhoonWarn" style="display:none;margin:-.2rem 0 .4rem;padding:.4rem .7rem;background:#FFF3CD;border:1.5px solid #FFD43B;border-radius:8px;font-size:.68rem;color:#856404">⚠️ Typhoon เชี่ยวชาญภาษาไทยเป็นหลัก — สำหรับคู่ภาษาอื่นแนะนำใช้ Gemini</div>
 
@@ -646,7 +651,9 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.1';
+var APP_VERSION='v2.2';
+var GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash'];
+function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-flash'}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
@@ -789,13 +796,15 @@ applyTrLang();
 var savedKey=localStorage.getItem('bepub_apikey')||'';
 var savedProv=localStorage.getItem('bepub_prov')||'typhoon';
 if(savedKey)$('ak').value=savedKey;
-if(savedProv){$('prov').value=savedProv;if(savedProv==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...'}}
+if(savedProv){$('prov').value=savedProv;if(savedProv==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...';if($('geminiModelRow'))$('geminiModelRow').style.display='block'}}
 
 function cleanKey(k){return k.replace(/[^\x20-\x7E]/g,'').trim()}
 function ck(){$('bgo').disabled=!(srcPages.length&&$('ak').value.trim());updateCost()}
 $('ak').oninput=function(){this.value=cleanKey(this.value);ck();localStorage.setItem('bepub_apikey',this.value)};
 $('ak').onpaste=function(){var self=this;setTimeout(function(){self.value=cleanKey(self.value);ck();localStorage.setItem('bepub_apikey',self.value)},0)};
-$('prov').onchange=function(){var v=this.value;localStorage.setItem('bepub_prov',v);if(v==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...'}else{$('ak-lbl').textContent='Typhoon API Key';$('ak').placeholder='typhoon-xxxxxxxx'}ck();updateDir()};
+$('prov').onchange=function(){var v=this.value;localStorage.setItem('bepub_prov',v);if(v==='gemini'){$('ak-lbl').textContent='Gemini API Key';$('ak').placeholder='AIzaSy...';if($('geminiModelRow'))$('geminiModelRow').style.display='block'}else{$('ak-lbl').textContent='Typhoon API Key';$('ak').placeholder='typhoon-xxxxxxxx';if($('geminiModelRow'))$('geminiModelRow').style.display='none'}ck();updateDir()};
+if($('geminiModel'))$('geminiModel').onchange=function(){localStorage.setItem('bepub_geminiModel',this.value)};
+var _savedGeminiModel=localStorage.getItem('bepub_geminiModel');if(_savedGeminiModel&&$('geminiModel')){$('geminiModel').value=_savedGeminiModel}
 
 /* Review toggle */
 $('reviewOn').onchange=function(){
@@ -1281,13 +1290,14 @@ async function translateChunk(text,key,style,customPrompt,prevContext){
   var temp=temps[style]||0.3;
 
   if(provider==='gemini'){
-    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key,{
+    var gModel=getGeminiModel();
+    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+gModel+':generateContent?key='+key,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTok,temperature:temp}})
     });
     if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Gemini '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
     var json=await r.json();
-    var translated=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
+    var translated=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):''
     var um=json.usageMetadata||{};
     return{text:translated,usage:{prompt_tokens:um.promptTokenCount||0,completion_tokens:um.candidatesTokenCount||0,total_tokens:um.totalTokenCount||0}};
   }else{
@@ -1310,8 +1320,8 @@ async function translateRetry(text,key,style,customPrompt,prevContext){
       var st=e.httpStatus||0;
       if(st===401){e.fatal=true;e.reason='invalid_key';throw e}
       if(st===402||st===403){e.fatal=true;e.reason='quota_exceeded';throw e}
-      if(st===429&&a>=3){e.fatal=true;e.reason='rate_limit';throw e}
-      if(st===429){var d=Math.pow(2,a)*2000+Math.random()*1000;log('⏳ Rate limit — retry '+(a+1)+'/3 ('+(d/1000).toFixed(1)+'s)...','purple');$('pm').textContent='rate limit — '+(d/1000).toFixed(0)+'s...';await new Promise(function(r){setTimeout(r,d)});continue}
+      if(st===429&&a>=3){e.fatal=true;e.reason='rate_limit';e.message='⚠️ Gemini quota หมด (429) — ลองเปลี่ยน Model เป็น gemini-2.0-flash-lite หรือ gemini-1.5-flash ในตั้งค่า หรือรอ 1 นาทีแล้วลองใหม่';throw e}
+      if(st===429){var d=Math.pow(2,a)*2000+Math.random()*1000;log('⏳ Rate limit 429 — retry '+(a+1)+'/3 ('+(d/1000).toFixed(1)+'s) ลองเปลี่ยน Gemini Model ได้','purple');$('pm').textContent='rate limit — '+(d/1000).toFixed(0)+'s...';await new Promise(function(r){setTimeout(r,d)});continue}
       if(st>=500&&a<3){var d2=3000+Math.random()*2000;log('⏳ Server '+st+' — retry...','purple');await new Promise(function(r){setTimeout(r,d2)});continue}
       throw e;
     }
@@ -1369,7 +1379,8 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
   var temp=0.15; /* low temperature for review — เน้นความถูกต้อง */
 
   if(reviewProvider==='gemini'){
-    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+reviewKey,{
+    var gModel=getGeminiModel();
+    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+gModel+':generateContent?key='+reviewKey,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokGemini,temperature:temp}})
     });
@@ -1382,7 +1393,8 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
     /* self-review: same provider */
     var mainProv=$('prov').value;
     if(mainProv==='gemini'){
-      var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+reviewKey,{
+      var gModel=getGeminiModel();
+      var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+gModel+':generateContent?key='+reviewKey,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokGemini,temperature:temp}})
       });
@@ -2414,17 +2426,39 @@ async function scanNames(){
       +'---\n\n'+sample;
     var result;
     if(prov==="gemini"){
-      var r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+key,{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({contents:[{parts:[{text:scanPrompt}]}],generationConfig:{maxOutputTokens:4096,temperature:0.1}})
-      });
-      if(!r.ok){
-        var errBody='';try{errBody=JSON.stringify(await r.json())}catch(e){}
-        if(r.status===401||r.status===403)throw new Error('Gemini API Key ไม่ถูกต้อง ('+r.status+') — ตรวจสอบ key ที่ aistudio.google.com/apikey');
-        throw new Error('Gemini '+r.status+' '+errBody);
+      /* Try current model first, then fallback models on 429 */
+      var gModel=getGeminiModel();
+      var modelsToTry=[gModel].concat(GEMINI_MODELS.filter(function(m){return m!==gModel}));
+      var scanOk=false;
+      for(var mi=0;mi<modelsToTry.length&&!scanOk;mi++){
+        var tryModel=modelsToTry[mi];
+        if(mi>0)log('🔄 429 quota หมด — ลอง model: '+tryModel,'purple');
+        for(var retry=0;retry<2&&!scanOk;retry++){
+          var r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+tryModel+":generateContent?key="+key,{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({contents:[{parts:[{text:scanPrompt}]}],generationConfig:{maxOutputTokens:4096,temperature:0.1}})
+          });
+          if(r.ok){
+            var json=await r.json();
+            result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
+            scanOk=true;
+          }else if(r.status===429){
+            var errBody429='';try{errBody429=JSON.stringify(await r.json())}catch(e){}
+            log('⚠️ '+tryModel+' → 429 quota exceeded','orange');
+            if(retry===0&&mi===modelsToTry.length-1){
+              /* last model, first retry — wait and try once more */
+              await new Promise(function(resolve){setTimeout(resolve,3000)});
+            }else if(retry>0||mi<modelsToTry.length-1){
+              break; /* move to next model */
+            }
+          }else{
+            var errBody='';try{errBody=JSON.stringify(await r.json())}catch(e){}
+            if(r.status===401||r.status===403)throw new Error('Gemini API Key ไม่ถูกต้อง ('+r.status+') — ตรวจสอบ key ที่ aistudio.google.com/apikey');
+            throw new Error('Gemini '+r.status+' '+errBody);
+          }
+        }
       }
-      var json=await r.json();
-      result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
+      if(!scanOk)throw new Error('⚠️ Gemini quota หมดทุก model — ลองเปลี่ยนเป็น Gemini Model อื่น หรือรอ 1 นาทีแล้วลองใหม่\n\nhttps://ai.google.dev/gemini-api/docs/rate-limits');
     }else{
       var r=await fetch("https://api.opentyphoon.ai/v1/chat/completions",{
         method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
