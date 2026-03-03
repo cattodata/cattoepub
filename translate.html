@@ -646,7 +646,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.0';
+var APP_VERSION='v2.1';
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
@@ -2369,6 +2369,14 @@ async function scanNames(){
   if(!srcPages||!srcPages.length){alert('⚠️ กรุณาอัปโหลดหนังสือก่อน');log('⚠️ กรุณาอัปโหลดหนังสือก่อน','error');return}
   var key=cleanKey($('ak').value);
   var prov=$('prov').value;
+  /* Auto-detect provider from key format if mismatch likely */
+  if(key.startsWith('AIzaSy')&&prov!=='gemini'){
+    prov='gemini';
+    log('🔄 ตรวจพบ Gemini key → สลับเป็น Gemini อัตโนมัติ','purple');
+  }else if(!key.startsWith('AIzaSy')&&prov==='gemini'){
+    prov='typhoon';
+    log('🔄 ตรวจพบ Typhoon key → สลับเป็น Typhoon อัตโนมัติ','purple');
+  }
   if(!key){alert('⚠️ กรุณาใส่ API Key ก่อน');log('⚠️ กรุณาใส่ API Key ก่อน','error');return}
   var btn=$('bScanNames');btn.disabled=true;
   var origText=$('scanNamesText').textContent;
@@ -2410,7 +2418,11 @@ async function scanNames(){
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({contents:[{parts:[{text:scanPrompt}]}],generationConfig:{maxOutputTokens:4096,temperature:0.1}})
       });
-      if(!r.ok)throw new Error("Gemini "+r.status);
+      if(!r.ok){
+        var errBody='';try{errBody=JSON.stringify(await r.json())}catch(e){}
+        if(r.status===401||r.status===403)throw new Error('Gemini API Key ไม่ถูกต้อง ('+r.status+') — ตรวจสอบ key ที่ aistudio.google.com/apikey');
+        throw new Error('Gemini '+r.status+' '+errBody);
+      }
       var json=await r.json();
       result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
     }else{
@@ -2418,7 +2430,11 @@ async function scanNames(){
         method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
         body:JSON.stringify({model:"typhoon-v2.5-30b-a3b-instruct",messages:[{role:"user",content:scanPrompt}],max_tokens:4096,temperature:0.1})
       });
-      if(!r.ok)throw new Error("Typhoon "+r.status);
+      if(!r.ok){
+        var errBody='';try{errBody=JSON.stringify(await r.json())}catch(e){}
+        if(r.status===401||r.status===403)throw new Error('Typhoon API Key ไม่ถูกต้อง ('+r.status+') — ตรวจสอบ key ที่ opentyphoon.ai');
+        throw new Error('Typhoon '+r.status+' '+errBody);
+      }
       var json=await r.json();
       result=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||"":"";
     }
