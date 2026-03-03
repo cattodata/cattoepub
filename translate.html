@@ -1236,13 +1236,18 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
     +'- ∎ ส่งเฉพาะข้อความสุดท้าย ห้ามมีหมายเหตุ/คำอธิบาย/บันทึกการแก้\n\n'
     +'ข้อความ'+tgtNative+'ที่ตรวจสอบและแก้ไขแล้ว:';
 
-  var maxTok=8192;
+  /* dynamic max_tokens — คำนวณตามขนาดข้อความจริง */
+  var charLen=original.length+translated.length;
+  /* Gemini: maxOutputTokens = output เท่านั้น */
+  var maxTokGemini=Math.max(8192,Math.ceil(translated.length/2)+2048);
+  /* Typhoon/OpenAI: max_tokens = total context (prompt+output) → ต้องรวม prompt ด้วย */
+  var maxTokOAI=Math.max(16384,Math.ceil(charLen/2)+4096);
   var temp=0.15; /* low temperature for review — เน้นความถูกต้อง */
 
   if(reviewProvider==='gemini'){
     var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+reviewKey,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTok,temperature:temp}})
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokGemini,temperature:temp}})
     });
     if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Gemini Review '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
     var json=await r.json();
@@ -1255,7 +1260,7 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
     if(mainProv==='gemini'){
       var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+reviewKey,{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTok,temperature:temp}})
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokGemini,temperature:temp}})
       });
       if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Gemini Review '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
       var json=await r.json();
@@ -1265,7 +1270,7 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
     }else{
       var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+reviewKey},
-        body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'คุณคือบรรณาธิการตรวจสอบการแปล ส่งเฉพาะข้อความที่แก้ไขแล้ว ห้ามมีหมายเหตุ/คำอธิบาย ห้ามหลอน ห้ามเพิ่มเนื้อหา ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลี'},{role:'user',content:prompt}],max_tokens:maxTok,temperature:temp})
+        body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'คุณคือบรรณาธิการตรวจสอบการแปล ส่งเฉพาะข้อความที่แก้ไขแล้ว ห้ามมีหมายเหตุ/คำอธิบาย ห้ามหลอน ห้ามเพิ่มเนื้อหา ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลี'},{role:'user',content:prompt}],max_tokens:maxTokOAI,temperature:temp})
       });
       if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('Review API '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
       var json=await r.json();
