@@ -451,7 +451,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
       <div class="gloss-pairs" id="glossPairs"></div>
       <div style="display:flex;gap:.3rem;flex-wrap:wrap">
         <button class="btn btn-o" id="bAddGloss" style="font-size:.66rem">+ เพิ่มคำศัพท์</button>
-        <button class="btn btn-o" id="bScanNames" style="font-size:.66rem;color:var(--purple);border-color:var(--purple)" title="ใช้ AI สแกนชื่อตัวละคร/คำศัพท์สำคัญ + สรรพนาม/เพศ จากต้นฉบับอัตโนมัติ">🔍 <span id="scanNamesText">สแกนชื่อตัวละคร</span></button>
+        <button class="btn btn-o" id="bScanNames" onclick="scanNames()" style="font-size:.66rem;color:var(--purple);border-color:var(--purple)" title="ใช้ AI สแกนชื่อตัวละคร/คำศัพท์สำคัญ + สรรพนาม/เพศ จากต้นฉบับอัตโนมัติ">🔍 <span id="scanNamesText">สแกนชื่อตัวละคร</span></button>
       </div>
       <!-- Character Profiles -->
       <div class="char-profiles" style="margin-top:.5rem">
@@ -613,7 +613,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   </div>
 
   <div class="foot">
-    <strong>CattoTranslate</strong> by <strong style="color:var(--blue)">cattoData</strong><br>
+    <strong>CattoTranslate</strong> <span id="appVer" style="font-size:.52rem;color:var(--text3)"></span> by <strong style="color:var(--blue)">cattoData</strong><br>
     Powered by <a href="https://opentyphoon.ai" target="_blank">Typhoon</a> / <a href="https://ai.google.dev" target="_blank">Gemini</a> · <a href="https://mozilla.github.io/pdf.js/" target="_blank">PDF.js</a> · <a href="https://stuk.github.io/jszip/" target="_blank">JSZip</a><br>
     <span id="footPrivacy" style="font-size:.58rem;color:var(--text3)">ทำงานในเบราว์เซอร์ · ข้อมูลส่งเฉพาะ AI API · ไม่เก็บข้อมูลใดๆ</span>
     <div style="margin-top:.5rem;padding:.5rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:.56rem;color:var(--text3);line-height:1.6;text-align:left">
@@ -646,7 +646,8 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var APP_VERSION='v1.6';
+try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
 var tokenUsage={prompt:0,completion:0,total:0},stats={total:0,done:0,skipped:0,ocr:0};
@@ -2268,7 +2269,8 @@ $('bAddGloss').onclick=function(){addGlossRow('','')};
 (function(){var gl=loadGlossary();gl.forEach(function(p){addGlossRow(p.s,p.t)})})();
 
 /* ═══ Auto Scan Names ═══ */
-$('bScanNames').onclick=async function(){
+async function scanNames(){
+  console.log('[CattoTranslate] scanNames() called, srcPages=',srcPages?srcPages.length:0);
   if(!srcPages||!srcPages.length){alert('⚠️ กรุณาอัปโหลดหนังสือก่อน');log('⚠️ กรุณาอัปโหลดหนังสือก่อน','error');return}
   var key=$('key').value.trim();
   var prov=$('prov').value;
@@ -2374,7 +2376,8 @@ $('bScanNames').onclick=async function(){
     btn.disabled=false;
     $('scanNamesText').textContent=origText;
   }
-};
+}
+try{$('bScanNames').onclick=scanNames}catch(e){console.error('bScanNames bind error:',e)}
 function getGlossaryPrompt(){
   var pairs=saveGlossary();
   if(!pairs.length)return '';
@@ -2490,6 +2493,10 @@ function recordUsage(pages,tokens){
   saveUsage(u);updateUsageDisplay();
 }
 updateUsageDisplay();
+
+/* ═══ Version Display ═══ */
+try{if($('appVer'))$('appVer').textContent=APP_VERSION}catch(e){}
+console.log('[CattoTranslate] '+APP_VERSION+' loaded OK, scanNames=',typeof scanNames);
 
 /* ═══ PWA Service Worker ═══ */
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
