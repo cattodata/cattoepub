@@ -235,6 +235,12 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
 .gloss-row .gx:hover{color:var(--red);background:var(--red-l)}
 .gloss-arrow{font-size:.72rem;color:var(--text3)}
 
+/* ═══ Character Profiles ═══ */
+.char-profiles{margin-top:.4rem}
+.char-profiles textarea{width:100%;min-height:60px;max-height:140px;padding:.4rem .5rem;font-size:.7rem;font-family:inherit;line-height:1.6;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);outline:none;resize:vertical;transition:border-color .2s}
+.char-profiles textarea:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(139,92,246,0.08)}
+.char-profiles .char-hint{font-size:.6rem;color:var(--text3);margin-top:.2rem;line-height:1.4}
+
 /* ═══ EPUB Reader ═══ */
 .reader-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
 .reader-overlay.on{display:flex}
@@ -445,7 +451,15 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
       <div class="gloss-pairs" id="glossPairs"></div>
       <div style="display:flex;gap:.3rem;flex-wrap:wrap">
         <button class="btn btn-o" id="bAddGloss" style="font-size:.66rem">+ เพิ่มคำศัพท์</button>
-        <button class="btn btn-o" id="bScanNames" style="font-size:.66rem;color:var(--purple);border-color:var(--purple)" title="ใช้ AI สแกนชื่อตัวละคร/คำศัพท์สำคัญจากต้นฉบับอัตโนมัติ">🔍 <span id="scanNamesText">สแกนชื่อตัวละคร</span></button>
+        <button class="btn btn-o" id="bScanNames" style="font-size:.66rem;color:var(--purple);border-color:var(--purple)" title="ใช้ AI สแกนชื่อตัวละคร/คำศัพท์สำคัญ + สรรพนาม/เพศ จากต้นฉบับอัตโนมัติ">🔍 <span id="scanNamesText">สแกนชื่อตัวละคร</span></button>
+      </div>
+      <!-- Character Profiles -->
+      <div class="char-profiles" style="margin-top:.5rem">
+        <label class="fl" id="charLabel">🎭 ข้อมูลตัวละคร (Character Profiles)</label>
+        <textarea id="charProfiles" placeholder="กดปุ่ม 🔍 สแกนชื่อตัวละคร เพื่อเติมอัตโนมัติ หรือพิมพ์เอง เช่น:
+• Sojung (โซจอง) — หญิง, อายุ 25, พนักงานออฟฟิศ → สรรพนาม: เธอ/ฉัน
+• Jaemin (แจมิน) — ชาย, อายุ 27, เชฟร้านอาหาร → สรรพนาม: เขา/ผม" rows="3"></textarea>
+        <div class="char-hint" id="charHint">💡 AI จะใช้ข้อมูลนี้เลือกสรรพนามให้ถูกต้องตลอดทั้งเรื่อง</div>
       </div>
     </div>
   </div>
@@ -667,6 +681,7 @@ var TT={
     reviewProvLabel:'ตรวจทานโดย',optRevSelf:'🔄 ตัวเดิม (Self-review) — ใช้ AI เดิมตรวจซ้ำ',optRevGemini:'✨ Gemini Flash — ใช้ Gemini ตรวจทาน (แนะนำ)',
     reviewKeyLabel:'Gemini API Key (สำหรับตรวจทาน)',reviewNote:'⚠️ ใช้ token เพิ่ม ~2x แต่คุณภาพดีขึ้นมาก — ตรวจความถูกต้อง, ธรรมชาติ, ไม่หลอน',
     glossLabel:'📖 คลังศัพท์ (Glossary)',addGloss:'+ เพิ่มคำศัพท์',scanNames:'สแกนชื่อตัวละคร',
+    charLabel:'🎭 ข้อมูลตัวละคร (Character Profiles)',charHint:'💡 AI จะใช้ข้อมูลนี้เลือกสรรพนามให้ถูกต้องตลอดทั้งเรื่อง',
     card3:'ข้อมูลหนังสือ',covText:'ปก',mtPh:'ชื่อหนังสือ',maPh:'ผู้แต่ง',mpPh:'สำนักพิมพ์',mdPh:'คำอธิบาย (ไม่บังคับ)',
     btnGo:'🌐 เริ่มแปล',btnStop:'■ หยุด',
     dlTitle:'ดาวน์โหลด',dlEpub:'EPUB (แปลแล้ว)',dlPdf:'PDF (เปิด Print)',dlTxt:'TXT (ข้อความ)',
@@ -693,6 +708,7 @@ var TT={
     reviewProvLabel:'Review by',optRevSelf:'🔄 Same AI (Self-review)',optRevGemini:'✨ Gemini Flash — Cross-review (recommended)',
     reviewKeyLabel:'Gemini API Key (for review)',reviewNote:'⚠️ Uses ~2x tokens but much better quality — checks accuracy, naturalness, no hallucination',
     glossLabel:'📖 Glossary',addGloss:'+ Add Term',scanNames:'Scan Character Names',
+    charLabel:'🎭 Character Profiles',charHint:'💡 AI uses this info to pick correct pronouns throughout the book',
     card3:'Book Info',covText:'Cover',mtPh:'Book title',maPh:'Author',mpPh:'Publisher',mdPh:'Description (optional)',
     btnGo:'🌐 Start Translating',btnStop:'■ Stop',
     dlTitle:'Download',dlEpub:'EPUB (Translated)',dlPdf:'PDF (Print Preview)',dlTxt:'TXT (Text)',
@@ -732,6 +748,8 @@ function applyTrLang(){
   if($('glossLabel'))$('glossLabel').textContent=t.glossLabel;
   $('bAddGloss').textContent=t.addGloss;
   if($('scanNamesText'))$('scanNamesText').textContent=t.scanNames;
+  if($('charLabel'))$('charLabel').textContent=t.charLabel;
+  if($('charHint'))$('charHint').textContent=t.charHint;
   if($('reviewLabel'))$('reviewLabel').textContent=t.reviewLabel;
   if($('reviewProvLabel'))$('reviewProvLabel').textContent=t.reviewProvLabel;
   if($('optRevSelf'))$('optRevSelf').textContent=t.optRevSelf;
@@ -1159,6 +1177,7 @@ async function translateChunk(text,key,style,customPrompt,prevContext){
     +'6. ส่งผลลัพธ์เป็น markdown สะอาด ห้ามครอบด้วย ```\n';
   if(customPrompt)prompt+='7. คำสั่งเพิ่มเติม: '+customPrompt+'\n';
   var glossPrompt=getGlossaryPrompt();if(glossPrompt)prompt+=glossPrompt;
+  var charPrompt=getCharProfilePrompt();if(charPrompt)prompt+=charPrompt;
   if(prevContext)prompt+='\n**บริบทจากส่วนก่อนหน้า (อ้างอิงเพื่อความต่อเนื่องเท่านั้น ห้ามแปลซ้ำ):**\n'+prevContext.slice(-500)+'\n';
   prompt+='\n---\n\n'+text;
 
@@ -1223,11 +1242,15 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
     +'- ชื่อตัวละครเปลี่ยนไปจากหน้าก่อน\n\n';
   var glossPrompt=getGlossaryPrompt();
   if(glossPrompt)prompt+='**คลังศัพท์ที่ต้องใช้ตามนี้เสมอ (ห้ามแปลเป็นอย่างอื่น):**\n'+glossPrompt+'\n\n';
+  var charPrompt=getCharProfilePrompt();
+  if(charPrompt)prompt+='**ข้อมูลตัวละคร (ใช้สรรพนามตามที่ระบุเท่านั้น):**\n'+charPrompt+'\n\n';
   prompt+='**ขั้นตอนที่ 2 — ตรวจเนื้อหาครบถ้วน (ทำในใจ):**\n'
     +'- เทียบจำนวนประโยค — ต้นฉบับมีกี่ประโยค? คำแปลมีกี่ประโยค? ตกหล่นหรือไม่?\n'
     +'- มีเนื้อหาที่คำแปลเพิ่มมาเองโดยไม่มีในต้นฉบับหรือไม่?\n\n'
-    +'**ขั้นตอนที่ 3 — ตรวจความเป็นธรรมชาติ (ทำในใจ):**\n'
-    +'- สรรพนาม ระดับภาษา เหมาะกับบริบทหรือไม่?\n'
+    +'**ขั้นตอนที่ 3 — ตรวจสรรพนามและความเป็นธรรมชาติ (ทำในใจ):**\n'
+    +'- ตรวจสรรพนามทุกจุด: ตัวละครหญิงต้องใช้สรรพนามหญิง (เธอ/ฉัน/หล่อน) ตัวละครชายต้องใช้สรรพนามชาย (เขา/ผม) — ห้ามสลับเด็ดขาด\n'
+    +'- ถ้ามีข้อมูลตัวละครด้านบน ให้ใช้สรรพนามตามที่ระบุ\n'
+    +'- ระดับภาษา เหมาะกับบริบทหรือไม่?\n'
     +'- มีส่วนที่ฟังแปลกๆ เป็น "ภาษาแปล" หรือไม่?\n'
     +'- ไวยากรณ์'+tgtNative+'ถูกต้องหรือไม่?\n\n'
     +'**ขั้นตอนที่ 4 — ส่งผลลัพธ์:**\n'
@@ -2260,17 +2283,25 @@ $('bScanNames').onclick=async function(){
     var srcL=LANG_NAMES[getSrcLang()]||'English';
     var tgtL=LANG_NAMES[getTgtLang()]||'Thai';
     var scanPrompt='คุณคือผู้เชี่ยวชาญด้านการแปลหนังสือ\n\n'
-      +'จากข้อความด้านล่าง (เป็น '+srcL+') ให้ทำรายการ:\n'
-      +'1. ชื่อตัวละครทุกตัว\n'
-      +'2. ชื่อสถานที่สำคัญ\n'
-      +'3. ชื่ออาหาร/เครื่องดื่มที่ปรากฏ\n'
-      +'4. คำศัพท์เฉพาะ/ศัพท์เทคนิคที่ควรแปลให้ตรงกัน\n\n'
-      +'ส่งผลลัพธ์เป็น JSON array เท่านั้น ในรูปแบบ:\n'
-      +'[{"src":"ชื่อในต้นฉบับ","tgt":"คำแปลที่ถูกต้องเป็น'+tgtL+'"}]\n\n'
+      +'จากข้อความด้านล่าง (เป็น '+srcL+') ให้ทำ 2 ส่วน:\n\n'
+      +'**ส่วนที่ 1 — รายการคำศัพท์ (glossary):**\n'
+      +'ดึงชื่อตัวละคร, ชื่อสถานที่, อาหาร/เครื่องดื่ม, ศัพท์เทคนิค\n\n'
+      +'**ส่วนที่ 2 — ข้อมูลตัวละคร (characters):**\n'
+      +'สำหรับแต่ละตัวละครที่มีบทพูดหรือมีบทบาท ระบุ:\n'
+      +'- ชื่อ (ต้นฉบับ + คำแปล)\n'
+      +'- เพศ (ชาย/หญิง/อื่นๆ)\n'
+      +'- อายุโดยประมาณ หรือช่วงวัย\n'
+      +'- บทบาท/อาชีพ\n'
+      +'- สรรพนามที่ควรใช้ใน'+tgtL+' (เช่น ฉัน/ผม/หนู สำหรับ I, เขา/เธอ/แก สำหรับ he/she)\n'
+      +'- ระดับภาษา (สุภาพ/ทั่วไป/หยาบ/น่ารัก)\n\n'
+      +'ส่งผลลัพธ์เป็น JSON เท่านั้น ในรูปแบบ:\n'
+      +'{"glossary":[{"src":"ชื่อต้นฉบับ","tgt":"คำแปล"}],"characters":[{"name":"ชื่อต้นฉบับ","nameTh":"ชื่อแปล","gender":"ชาย/หญิง","age":"25","role":"เชฟ","pronounI":"ผม","pronounRef":"เขา","speech":"ทั่วไป"}]}\n\n'
       +'**กฎ:**\n'
       +'- ชื่อคนเกาหลี/ญี่ปุ่น/จีน: ทับศัพท์เป็นภาษาปลายทาง เช่น Sojung → โซจอง\n'
       +'- ชื่อคนอังกฤษ: คงเป็นอังกฤษ เช่น John → John\n'
       +'- ชื่ออาหาร: แปลให้ถูกต้อง เช่น Grapefruit → เกรปฟรุต (ไม่ใช่ ส้มโอ หรือ มะม่วง)\n'
+      +'- pronounI = สรรพนามแทนตัวเอง (I/me), pronounRef = สรรพนามที่คนอื่นเรียก (he/she/they)\n'
+      +'- speech = ระดับภาษาของตัวละคร\n'
       +'- ส่งเฉพาะ JSON ห้ามมีอย่างอื่น ห้ามครอบด้วย ```\n\n'
       +'---\n\n'+sample;
     var result;
@@ -2293,8 +2324,10 @@ $('bScanNames').onclick=async function(){
     }
     /* Parse JSON from response */
     result=result.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-    var names=JSON.parse(result);
-    if(!Array.isArray(names))throw new Error("ไม่ใช่ JSON array");
+    var parsed=JSON.parse(result);
+    /* Support both old format [{src,tgt}] and new format {glossary:[],characters:[]} */
+    var names=Array.isArray(parsed)?parsed:(parsed.glossary||[]);
+    var chars=Array.isArray(parsed)?[]:(parsed.characters||[]);
     /* เพิ่มเข้า glossary (ไม่ซ้ำกับที่มีอยู่) */
     var existing=loadGlossary();
     var existingSrc=existing.map(function(p){return p.s.toLowerCase()});
@@ -2307,6 +2340,26 @@ $('bScanNames').onclick=async function(){
       }
     });
     saveGlossary();
+    /* เติม character profiles */
+    if(chars.length){
+      var profileLines=chars.map(function(c){
+        var line='• '+c.name;
+        if(c.nameTh)line+=' ('+c.nameTh+')';
+        line+=' — ';
+        if(c.gender)line+=c.gender+', ';
+        if(c.age)line+='อายุ ~'+c.age+', ';
+        if(c.role)line+=c.role;
+        line+=' → สรรพนาม: ';
+        if(c.pronounI)line+=c.pronounI+'/';
+        if(c.pronounRef)line+=c.pronounRef;
+        if(c.speech)line+=' ('+c.speech+')';
+        return line;
+      });
+      var existingProfiles=$('charProfiles').value.trim();
+      $('charProfiles').value=(existingProfiles?existingProfiles+'\n':'')+profileLines.join('\n');
+      saveCharProfiles();
+      log('🎭 พบตัวละคร '+chars.length+' ตัว — เติมข้อมูลสรรพนามแล้ว','success');
+    }
     log('🔍 สแกนเสร็จ: พบ '+names.length+' คำ, เพิ่มใหม่ '+added+' คำ','success');
   }catch(e){
     log('⚠️ สแกนล้มเหลว: '+e.message,'error');
@@ -2319,6 +2372,18 @@ function getGlossaryPrompt(){
   var pairs=saveGlossary();
   if(!pairs.length)return '';
   return '\n**คลังศัพท์ (ต้องแปลตามนี้เสมอ):**\n'+pairs.map(function(p){return '• '+p.s+' → '+p.t}).join('\n')+'\n';
+}
+
+/* ═══ Character Profiles ═══ */
+var CP_KEY='bepub_charprofiles';
+function saveCharProfiles(){localStorage.setItem(CP_KEY,$('charProfiles').value)}
+function loadCharProfiles(){return localStorage.getItem(CP_KEY)||''}
+$('charProfiles').value=loadCharProfiles();
+$('charProfiles').onchange=function(){saveCharProfiles()};
+function getCharProfilePrompt(){
+  var cp=$('charProfiles').value.trim();
+  if(!cp)return '';
+  return '\n**ข้อมูลตัวละคร (ใช้สรรพนามตามที่ระบุ ห้ามสลับ):**\n'+cp+'\n\nสำคัญมาก: ตัวละครหญิงต้องใช้สรรพนามหญิง (เธอ/ฉัน/หนู ฯลฯ) ตัวละครชายต้องใช้สรรพนามชาย (เขา/ผม ฯลฯ) ห้ามสลับเด็ดขาด\n';
 }
 
 /* ═══ Edit Text Modal JS ═══ */
