@@ -2269,13 +2269,16 @@ $('bAddGloss').onclick=function(){addGlossRow('','')};
 
 /* ═══ Auto Scan Names ═══ */
 $('bScanNames').onclick=async function(){
-  if(!srcPages||!srcPages.length){log('⚠️ กรุณาอัปโหลดหนังสือก่อน','error');return}
+  if(!srcPages||!srcPages.length){alert('⚠️ กรุณาอัปโหลดหนังสือก่อน');log('⚠️ กรุณาอัปโหลดหนังสือก่อน','error');return}
   var key=$('key').value.trim();
   var prov=$('prov').value;
-  if(!key){log('⚠️ กรุณาใส่ API Key ก่อน','error');return}
+  if(!key){alert('⚠️ กรุณาใส่ API Key ก่อน');log('⚠️ กรุณาใส่ API Key ก่อน','error');return}
   var btn=$('bScanNames');btn.disabled=true;
   var origText=$('scanNamesText').textContent;
   $('scanNamesText').textContent='⏳ สแกน...';
+  /* เปิด console log ให้เห็นสถานะ */
+  $('lb').classList.add('open');
+  log('🔍 กำลังสแกนชื่อตัวละครและคำศัพท์...','purple');
   try{
     /* ใช้ 3 หน้าแรก (หรือทั้งหมดถ้าน้อยกว่า) */
     var sample=srcPages.slice(0,Math.min(3,srcPages.length)).join('\n\n---\n\n');
@@ -2324,7 +2327,10 @@ $('bScanNames').onclick=async function(){
     }
     /* Parse JSON from response */
     result=result.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-    var parsed=JSON.parse(result);
+    /* ถ้ามีข้อความ+JSON ให้หา JSON */
+    var jsonMatch=result.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if(!jsonMatch)throw new Error("AI ไม่ได้ส่ง JSON กลับมา — ลองกดสแกนอีกครั้ง");
+    var parsed=JSON.parse(jsonMatch[0]);
     /* Support both old format [{src,tgt}] and new format {glossary:[],characters:[]} */
     var names=Array.isArray(parsed)?parsed:(parsed.glossary||[]);
     var chars=Array.isArray(parsed)?[]:(parsed.characters||[]);
@@ -2363,6 +2369,7 @@ $('bScanNames').onclick=async function(){
     log('🔍 สแกนเสร็จ: พบ '+names.length+' คำ, เพิ่มใหม่ '+added+' คำ','success');
   }catch(e){
     log('⚠️ สแกนล้มเหลว: '+e.message,'error');
+    alert('⚠️ สแกนล้มเหลว: '+e.message);
   }finally{
     btn.disabled=false;
     $('scanNamesText').textContent=origText;
