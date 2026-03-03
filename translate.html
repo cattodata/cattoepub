@@ -646,7 +646,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v1.7';
+var APP_VERSION='v1.8';
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
@@ -908,52 +908,103 @@ async function handleFile(f){
       var buf=await f.arrayBuffer();
       var zip=await JSZip.loadAsync(buf);
       setSt('กำลังอ่านข้อความจาก EPUB...','info');
-      /* Find content.opf */
+
+      /* Helper: find file in zip (case-insensitive, URL-decode, normalize) */
+      var zipIndex={};
+      zip.forEach(function(p){zipIndex[p.toLowerCase()]=p});
+      function findZipFile(path){
+        if(!path)return null;
+        /* Try exact path first */
+        var f=zip.file(path);if(f)return f;
+        /* URL-decode and normalize */
+        try{path=decodeURIComponent(path)}catch(e){}
+        path=path.replace(/\/+/g,'/').replace(/^\//,'');
+        f=zip.file(path);if(f)return f;
+        /* Case-insensitive fallback */
+        var key=path.toLowerCase();
+        if(zipIndex[key])return zip.file(zipIndex[key]);
+        /* Try without leading directory */
+        for(var k in zipIndex){
+          if(k.endsWith('/'+key.split('/').pop()))return zip.file(zipIndex[k]);
+        }
+        return null;
+      }
+      function resolvePath(base,rel){
+        if(!rel)return '';
+        try{rel=decodeURIComponent(rel)}catch(e){}
+        if(rel.startsWith('/'))return rel.slice(1);
+        var parts=(base+rel).split('/');
+        var resolved=[];
+        for(var i=0;i<parts.length;i++){
+          if(parts[i]==='..'){if(resolved.length)resolved.pop()}
+          else if(parts[i]!=='.'&&parts[i]!=='')resolved.push(parts[i]);
+        }
+        return resolved.join('/');
+      }
+
+      /* Step 1: Parse container.xml to find OPF path */
       var opfPath=null;
-      zip.forEach(function(p){if(p.endsWith('.opf'))opfPath=p});
+      var containerFile=findZipFile('META-INF/container.xml');
+      if(containerFile){
+        try{
+          var containerXml=await containerFile.async('string');
+          var cParser=new DOMParser(),cDoc=cParser.parseFromString(containerXml,'application/xml');
+          var rootfile=cDoc.querySelector('rootfile[full-path]');
+          if(rootfile)opfPath=rootfile.getAttribute('full-path');
+        }catch(ce){log('⚠️ container.xml parse error','error')}
+      }
+      /* Fallback: scan for .opf */
+      if(!opfPath){
+        zip.forEach(function(p){if(p.endsWith('.opf')&&!opfPath)opfPath=p});
+      }
+
       var spine=[],items={};
       if(opfPath){
-        var opfXml=await zip.file(opfPath).async('string');
+        var opfFile=findZipFile(opfPath);
+        if(!opfFile)throw new Error('ไม่พบ OPF file: '+opfPath);
+        var opfXml=await opfFile.async('string');
         var parser=new DOMParser(),opfDoc=parser.parseFromString(opfXml,'application/xml');
         /* Extract metadata */
         var gm=function(tag){var el=opfDoc.querySelector(tag);return el?el.textContent.trim():''};
         var stripDesc=function(raw){
           if(!raw)return '';
-          /* ขั้น 1: ถ้ามี HTML tags (จริงหรือ escaped) ให้ทำความสะอาด */
           var s=raw;
-          /* Unescape HTML entities ที่อาจซ้อนอยู่ */
           if(s.indexOf('&lt;')>=0||s.indexOf('&gt;')>=0){
             s=s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
           }
-          /* ถ้ายังมี HTML tags อยู่ ให้ parse แล้วดึง text */
           if(/<[a-z][^>]*>/i.test(s)){
-            s=s.replace(/<br\s*\/?>/gi,'\n');
-            s=s.replace(/<\/p>\s*/gi,'\n\n');
-            s=s.replace(/<p[^>]*>/gi,'');
-            s=s.replace(/<hr\s*\/?>/gi,'\n---\n');
-            s=s.replace(/<[^>]+>/g,'');
+            s=s.replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>\s*/gi,'\n\n').replace(/<p[^>]*>/gi,'').replace(/<hr\s*\/?>/gi,'\n---\n').replace(/<[^>]+>/g,'');
           }
-          /* ลบบรรทัดว่างซ้ำ */
-          s=s.replace(/\n{3,}/g,'\n\n');
-          return s.trim();
+          return s.replace(/\n{3,}/g,'\n\n').trim();
         };
         var mt=gm('title'),ma=gm('creator'),mp=gm('publisher'),ml=gm('language'),md=stripDesc(gm('description'));
         if(mt)$('mt').value=mt;if(ma&&ma!=='Unknown')$('ma').value=ma;if(mp)$('mp').value=mp;if(md)$('md').value=md;
         /* Get spine order */
         var opfDir=opfPath.replace(/[^\/]*$/,'');
-        opfDoc.querySelectorAll('manifest item').forEach(function(it){items[it.getAttribute('id')]={href:opfDir+it.getAttribute('href'),mt:it.getAttribute('media-type')}});
-        opfDoc.querySelectorAll('spine itemref').forEach(function(ref){var id=ref.getAttribute('idref');if(items[id]&&items[id].mt&&items[id].mt.indexOf('xhtml')>=0)spine.push(items[id].href)});
+        opfDoc.querySelectorAll('manifest item').forEach(function(it){
+          var href=it.getAttribute('href');
+          var resolved=resolvePath(opfDir,href);
+          items[it.getAttribute('id')]={href:resolved,mt:it.getAttribute('media-type')||''};
+        });
+        opfDoc.querySelectorAll('spine itemref').forEach(function(ref){
+          var id=ref.getAttribute('idref');
+          if(items[id]&&items[id].mt){
+            var m=items[id].mt.toLowerCase();
+            if(m.indexOf('xhtml')>=0||m.indexOf('html')>=0)spine.push(items[id].href);
+          }
+        });
         /* Extract cover */
         try{
           var coverMeta=opfDoc.querySelector('meta[name="cover"]');
-          if(coverMeta){var covId=coverMeta.getAttribute('content');if(items[covId]){var covFile=zip.file(items[covId].href);if(covFile){var covB64=await covFile.async('base64');coverUrl='data:'+items[covId].mt+';base64,'+covB64;coverMime=items[covId].mt;$('cz').classList.add('ok');var img=document.createElement('img');img.src=coverUrl;$('cz').appendChild(img)}}}
-        }catch(ce){}
+          if(coverMeta){var covId=coverMeta.getAttribute('content');if(items[covId]){var covFile=findZipFile(items[covId].href);if(covFile){var covB64=await covFile.async('base64');coverUrl='data:'+items[covId].mt+';base64,'+covB64;coverMime=items[covId].mt;$('cz').classList.add('ok');var img=document.createElement('img');img.src=coverUrl;$('cz').appendChild(img)}}}
+        }catch(ce){log('⚠️ cover: '+ce.message,'error')}
       }
-      /* Read spine pages (or fallback: all xhtml files) */
-      if(!spine.length){zip.forEach(function(p){if(p.endsWith('.xhtml')||p.endsWith('.html'))spine.push(p)});spine.sort()}
+      /* Read spine pages (or fallback: all xhtml/html files) */
+      if(!spine.length){zip.forEach(function(p){if(/\.(xhtml|html|htm)$/i.test(p)&&!/toc\./i.test(p))spine.push(p)});spine.sort()}
+      log('📖 Spine: '+spine.length+' files');
       for(var si=0;si<spine.length;si++){
-        var xf=zip.file(spine[si]);
-        if(!xf)continue;
+        var xf=findZipFile(spine[si]);
+        if(!xf){log('⚠️ ไม่พบไฟล์: '+spine[si],'error');continue}
         var xhtml=await xf.async('string');
         var bodyM=xhtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if(bodyM){
