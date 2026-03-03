@@ -1479,7 +1479,7 @@ async function startTranslate(){
       chaps=detectChapters(translatedPages);
       rtoc();
       var epubBlob=await buildEpub(translatedPages,chaps);
-      var txtBlob=new Blob(['\ufeff'+full],{type:'text/plain;charset=utf-8'});
+      var txtBlob=new Blob(['\ufeff'+full+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
       var base=($('mt').value.trim()||'translated')+getTgtSuffix();
       $('de').href=URL.createObjectURL(epubBlob);$('de').download=base+'.epub';$('es').textContent=fs(epubBlob.size);
       $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
@@ -1676,6 +1676,9 @@ function openPdfPreview(pages,ch,m){
     html+=content;
   }
 
+  /* Watermark / Disclaimer page */
+  html+=WATERMARK_HTML;
+
   html+='</body></html>';
 
   /* เปิดในหน้าต่างใหม่ → ผู้ใช้กด Print → Save as PDF */
@@ -1700,6 +1703,27 @@ function openPdfDirect(){
   var m={t:$('mt').value.trim()||'Translated Book',a:$('ma').value.trim()||'Unknown',p:$('mp').value.trim(),l:$('ml').value.trim()||'th'};
   openPdfPreview(translatedPages,chaps,m);
 }
+
+/* ═══ Watermark / Disclaimer ═══ */
+var WATERMARK_HTML='<div style="page-break-before:always;text-align:center;padding-top:25vh;font-family:sans-serif;color:#888">'
+  +'<hr style="border:none;border-top:1px solid #ccc;width:60%;margin:0 auto 2em"/>'
+  +'<p style="font-size:1.3em;font-weight:700;letter-spacing:.15em;color:#b00;text-indent:0;text-align:center">NOT FOR SALE</p>'
+  +'<p style="font-size:.85em;margin:.6em 0;text-indent:0;text-align:center;color:#999">This translated edition is produced for personal use only.<br/>It is strictly prohibited to distribute, reproduce, or sell<br/>this material in any form, whether printed or digital.</p>'
+  +'<p style="font-size:.85em;margin:1.5em 0 .4em;text-indent:0;text-align:center;color:#999">ฉบับแปลนี้จัดทำเพื่อการใช้งานส่วนบุคคลเท่านั้น<br/>ห้ามนำไปจำหน่าย เผยแพร่ ทำซ้ำ หรือดัดแปลงในทุกรูปแบบ</p>'
+  +'<hr style="border:none;border-top:1px solid #ccc;width:40%;margin:2em auto"/>'
+  +'<p style="font-size:.78em;text-indent:0;text-align:center;color:#aaa">Translated with <strong>CattoTranslate</strong> by <a href="https://cattodata.com" style="color:#7c8abb;text-decoration:none">cattodata.com</a></p>'
+  +'</div>';
+var WATERMARK_TXT='\n\n══════════════════════════════════════\n'
+  +'           NOT FOR SALE\n'
+  +'══════════════════════════════════════\n\n'
+  +'This translated edition is produced for personal use only.\n'
+  +'It is strictly prohibited to distribute, reproduce, or sell\n'
+  +'this material in any form, whether printed or digital.\n\n'
+  +'ฉบับแปลนี้จัดทำเพื่อการใช้งานส่วนบุคคลเท่านั้น\n'
+  +'ห้ามนำไปจำหน่าย เผยแพร่ ทำซ้ำ หรือดัดแปลงในทุกรูปแบบ\n\n'
+  +'──────────────────────────────────────\n'
+  +'Translated with CattoTranslate by cattodata.com\n'
+  +'══════════════════════════════════════\n';
 
 async function buildEpub(pages,ch){
   var z=new JSZip();
@@ -2032,6 +2056,11 @@ hr::after {
     mf+='<item id="p'+i+'" href="'+fn+'" media-type="application/xhtml+xml"/>\n';
     sp+='<itemref idref="p'+i+'"/>\n';
   });
+  /* Disclaimer / Watermark page (last page) */
+  z.file('OEBPS/disclaimer.xhtml','<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xml:lang="'+ex(m.l)+'"><head><meta charset="UTF-8"/><link rel="stylesheet" href="style.css"/></head><body>'+WATERMARK_HTML+'</body></html>');
+  mf+='<item id="disclaimer" href="disclaimer.xhtml" media-type="application/xhtml+xml"/>\n';
+  sp+='<itemref idref="disclaimer"/>\n';
+
   /* Chapter nav from detected chapters, or fallback to page numbers */
   if(ch.length){
     ch.forEach(function(c,i){var fn=pfm[c.pi]||('p'+c.pi+'.xhtml');nav+='<navPoint id="ch'+i+'" playOrder="'+po+'"><navLabel><text>'+ex(c.title)+'</text></navLabel><content src="'+fn+'"/></navPoint>\n';po++});
@@ -2095,7 +2124,7 @@ $('rbBuild').onclick=async function(){
     setSt('กำลังสร้าง EPUB...','info');
     var eb=await buildEpub(translatedPages,chaps);
     var full=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
-    var tb=new Blob(['\ufeff'+full],{type:'text/plain;charset=utf-8'});
+    var tb=new Blob(['\ufeff'+full+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
     $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
     $('dt').href=URL.createObjectURL(tb);$('dt').download=base+'.txt';$('ts').textContent=fs(tb.size);
     $('dp').style.display='';
