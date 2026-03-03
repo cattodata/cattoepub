@@ -1,4 +1,4 @@
-const CACHE='catto-v2';
+const CACHE='catto-v3';
 const ASSETS=[
   './',
   './index.html',
@@ -19,6 +19,16 @@ self.addEventListener('activate',e=>{
 self.addEventListener('fetch',e=>{
   /* Network-first for API calls, cache-first for static assets */
   if(e.request.url.includes('api.opentyphoon.ai')||e.request.url.includes('generativelanguage.googleapis.com')||e.request.url.includes('visitorbadge.io')){
+    return;
+  }
+  /* Network-first for HTML pages (always get latest code) */
+  if(e.request.mode==='navigate'||e.request.url.endsWith('.html')){
+    e.respondWith(
+      fetch(e.request).then(res=>{
+        if(res.ok){var clone=res.clone();caches.open(CACHE).then(c=>c.put(e.request,clone))}
+        return res;
+      }).catch(()=>caches.match(e.request))
+    );
     return;
   }
   e.respondWith(
