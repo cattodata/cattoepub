@@ -355,9 +355,9 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <div class="up" id="dz">
       <span class="ui">📄</span>
       <div class="ut" id="dzText"><b>คลิกเลือกไฟล์</b> หรือลากมาวาง</div>
-      <div class="uh" id="dzHint">รองรับ .pdf และ .epub</div>
+      <div class="uh" id="dzHint">รองรับ .pdf .epub .zip</div>
       <div class="uf" id="fn" style="display:none"></div>
-      <input type="file" id="fi" accept=".pdf,.epub" hidden>
+      <input type="file" id="fi" accept=".pdf,.epub,.zip" hidden>
     </div>
 
     <!-- PDF page preview -->
@@ -646,7 +646,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v1.9';
+var APP_VERSION='v2.0';
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
@@ -672,7 +672,7 @@ var TT={
   th:{
     heroDesc:'AI Book Translator<br>แปลหนังสือ PDF/EPUB ด้วย AI — รองรับหลายภาษา พร้อมจัดรูปแบบสวย',
     tagMulti:'🌐 Multi-Language',tagInput:'📄 PDF + EPUB Input',tagOutput:'📘 EPUB Output',tagClient:'⚡ Client-Side',
-    card1:'อัปโหลดหนังสือ',dzText:'<b>คลิกเลือกไฟล์</b> หรือลากมาวาง',dzHint:'รองรับ .pdf และ .epub',
+    card1:'อัปโหลดหนังสือ',dzText:'<b>คลิกเลือกไฟล์</b> หรือลากมาวาง',dzHint:'รองรับ .pdf .epub .zip',
     card2:'ตั้งค่าการแปล',styleLabel:'สไตล์การแปล',
     optNatural:'🎯 แปลธรรมชาติ — อ่านง่าย ลื่นไหล',optFormal:'📚 แปลเป็นทางการ — คงน้ำเสียงต้นฉบับ',
     optCreative:'✨ แปลสร้างสรรค์ — เน้นความสวยงามของภาษา',optLiteral:'📝 แปลตรงตัว — ใกล้เคียงต้นฉบับที่สุด',
@@ -699,7 +699,7 @@ var TT={
   en:{
     heroDesc:'AI Book Translator<br>Translate PDF/EPUB books with AI — Multi-language support with beautiful formatting',
     tagMulti:'🌐 Multi-Language',tagInput:'📄 PDF + EPUB Input',tagOutput:'📘 EPUB Output',tagClient:'⚡ Client-Side',
-    card1:'Upload Book',dzText:'<b>Click to choose file</b> or drag & drop',dzHint:'Supports .pdf and .epub',
+    card1:'Upload Book',dzText:'<b>Click to choose file</b> or drag & drop',dzHint:'Supports .pdf .epub .zip',
     card2:'Translation Settings',styleLabel:'Translation Style',
     optNatural:'🎯 Natural — Easy to read, fluent',optFormal:'📚 Formal — Preserve original tone',
     optCreative:'✨ Creative — Emphasize language beauty',optLiteral:'📝 Literal — Closest to original',
@@ -910,9 +910,12 @@ function resetBookState(){
 
 async function handleFile(f){
   var name=f.name.toLowerCase().trim();
-  if(!name.endsWith('.pdf')&&!name.endsWith('.epub')){
-    setSt('รองรับเฉพาะ .pdf และ .epub (ได้รับ: '+f.name+')','err');
-    log('⚠️ ไม่รองรับไฟล์: '+f.name+' (type: '+f.type+')','error');
+  /* Detect file type: .pdf, .epub, .epub.zip, .zip (try as EPUB) */
+  var isPdf=name.endsWith('.pdf');
+  var isEpub=name.endsWith('.epub')||name.indexOf('.epub')>=0||name.endsWith('.zip');
+  if(!isPdf&&!isEpub){
+    setSt('รองรับ .pdf .epub .epub.zip .zip (ได้รับ: '+f.name+')','err');
+    log('⚠️ ไม่รองรับไฟล์: '+f.name+' (type: '+(f.type||'unknown')+')','error');
     return;
   }
   /* Reset everything from previous book */
@@ -921,7 +924,7 @@ async function handleFile(f){
   dz.classList.add('ok');
   $('fn').style.display='block';$('fn').textContent=f.name+' ('+fs(f.size)+')';
 
-  if(name.endsWith('.pdf')){
+  if(isPdf){
     srcType='pdf';
     log('📄 โหลด PDF: '+f.name);
     try{
@@ -941,9 +944,9 @@ async function handleFile(f){
       try{var meta=await pdfDoc.getMetadata();var info=meta&&meta.info?meta.info:{};if(info.Title&&info.Title.trim())$('mt').value=info.Title.trim();else $('mt').placeholder=f.name.replace(/\.pdf$/i,'');if(info.Author&&info.Author.trim())$('ma').value=info.Author.trim();if(info.Publisher&&info.Publisher.trim())$('mp').value=info.Publisher.trim()}catch(me){}
       setSt('✅ อ่าน PDF เสร็จ — พร้อมแปล','ok');
     }catch(e){log('อ่านไม่ได้: '+e.message,'error');setSt('อ่าน PDF ไม่ได้','err')}
-  }else{
+  }else if(isEpub){
     srcType='epub';
-    log('📗 โหลด EPUB: '+f.name);
+    log('📗 โหลด EPUB: '+f.name+(name.endsWith('.zip')?' (ZIP → EPUB)':''));
     try{
       var buf=await f.arrayBuffer();
       var zip=await JSZip.loadAsync(buf);
