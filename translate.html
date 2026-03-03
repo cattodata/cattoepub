@@ -646,7 +646,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v1.6';
+var APP_VERSION='v1.7';
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
@@ -2270,9 +2270,10 @@ $('bAddGloss').onclick=function(){addGlossRow('','')};
 
 /* ═══ Auto Scan Names ═══ */
 async function scanNames(){
+  try{
   console.log('[CattoTranslate] scanNames() called, srcPages=',srcPages?srcPages.length:0);
   if(!srcPages||!srcPages.length){alert('⚠️ กรุณาอัปโหลดหนังสือก่อน');log('⚠️ กรุณาอัปโหลดหนังสือก่อน','error');return}
-  var key=$('key').value.trim();
+  var key=cleanKey($('ak').value);
   var prov=$('prov').value;
   if(!key){alert('⚠️ กรุณาใส่ API Key ก่อน');log('⚠️ กรุณาใส่ API Key ก่อน','error');return}
   var btn=$('bScanNames');btn.disabled=true;
@@ -2373,9 +2374,10 @@ async function scanNames(){
     log('⚠️ สแกนล้มเหลว: '+e.message,'error');
     alert('⚠️ สแกนล้มเหลว: '+e.message);
   }finally{
-    btn.disabled=false;
-    $('scanNamesText').textContent=origText;
+    if($('bScanNames'))$('bScanNames').disabled=false;
+    if($('scanNamesText'))$('scanNamesText').textContent='สแกนชื่อตัวละคร';
   }
+  }catch(outerErr){alert('❌ scanNames error: '+outerErr.message);console.error('scanNames outer error:',outerErr)}
 }
 try{$('bScanNames').onclick=scanNames}catch(e){console.error('bScanNames bind error:',e)}
 function getGlossaryPrompt(){
