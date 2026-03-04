@@ -653,7 +653,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.6';
+var APP_VERSION='v2.7';
 var GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite'];
 function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-flash'}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
@@ -1203,6 +1203,31 @@ function loadTrProgress(){
 function clearTrProgress(){try{localStorage.removeItem(LS_TR_KEY)}catch(e){}}
 
 /* ═══ Post-processing: clean CJK garbage & artifacts ═══ */
+/* Detect foreign script in review output that shouldn't be there */
+function detectForeignScript(text,srcText,tgtLang){
+  if(!text)return false;
+  /* Cyrillic: almost never valid in Thai/EN/CJK text */
+  var cyrillic=/[\u0400-\u04FF]/;
+  if(cyrillic.test(text)&&!cyrillic.test(srcText))return 'Cyrillic';
+  /* CJK in non-CJK target (skip if source has CJK) */
+  if(!['zh','ja','ko'].includes(tgtLang)){
+    var cjk=/[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF]/;
+    if(cjk.test(text)&&!cjk.test(srcText))return 'CJK';
+  }
+  /* Arabic in non-Arabic target */
+  if(tgtLang!=='ar'){
+    var arabic=/[\u0600-\u06FF]/;
+    if(arabic.test(text)&&!arabic.test(srcText))return 'Arabic';
+  }
+  /* Mixed Unicode confusables: Latin look-alikes mixed with Thai/CJK */
+  /* e.g. Cyrillic "С" (U+0421) looks like Latin "C" but is different */
+  var mixCount=0;
+  var confusables=/[\u0400-\u04FF\u0370-\u03FF]/g;
+  var matches=text.match(confusables);
+  if(matches&&!confusables.test(srcText))mixCount=matches.length;
+  if(mixCount>=3)return 'MixedScript('+mixCount+')';
+  return false;
+}
 function cleanTranslation(text){
   /* Remove stray CJK characters (Chinese/Japanese) mixed in Thai output */
   var t=text;
@@ -1294,9 +1319,9 @@ async function translateChunk(text,key,style,customPrompt,prevContext){
     +'**งาน:** แปลข้อความจาก '+srcL+' เป็น '+tgtL+'\n\n'
     +'**สไตล์:** '+styles[style]+'\n\n'
     +'**กฎสำคัญ:**\n'
-    +'1. ห้ามมีภาษาจีน ญี่ปุ่น เกาหลี ปนเด็ดขาด — ถ้าต้นฉบับมี ให้แปลเป็น'+tgtLangName+'หรือทับศัพท์ภาษาอังกฤษ\n'
+    +'1. ห้ามมีภาษาจีน ญี่ปุ่น เกาหลี ปนเด็ดขาด — ถ้าต้นฉบับมี ให้แปลเป็น'+tgtLangName+'หรือทับศัพท์\n'
     +'2. คงรูปแบบ markdown: หัวข้อ (#, ##, ###), ย่อหน้า, รายการ, ตาราง\n'
-    +'3. ชื่อเฉพาะ/ชื่อตัวละคร: ถ้ามีชื่อไทยที่รู้จักกันดีให้ใช้ชื่อไทย ถ้าไม่แน่ใจให้ทับศัพท์อังกฤษ\n'
+    +'3. ชื่อเฉพาะ/ชื่อตัวละคร: **ต้อง**ทับศัพท์เป็น'+tgtLangName+'ทุกชื่อ เช่น John→จอห์น, Elizabeth→เอลิซาเบธ, London→ลอนดอน ห้ามปล่อยเป็นภาษาต้นฉบับ (ยกเว้นระบุไว้ในคลังศัพท์)\n'
     +'4. ห้ามเพิ่มหมายเหตุ คำอธิบาย หรือความเห็นใดๆ — ส่งเฉพาะข้อความที่แปลแล้วเท่านั้น\n'
     +'5. ใช้สรรพนาม ระดับภาษา น้ำเสียง ให้เหมาะกับบริบทของเรื่อง\n'
     +'6. ส่งผลลัพธ์เป็น markdown สะอาด ห้ามครอบด้วย ```\n';
@@ -1324,7 +1349,7 @@ async function translateChunk(text,key,style,customPrompt,prevContext){
   }else{
     var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
       method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'คุณคือนักแปลหนังสืออาชีพ ส่งเฉพาะข้อความที่แปลแล้ว ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลีปนเด็ดขาด'},{role:'user',content:prompt}],max_tokens:maxTok,temperature:temp})
+      body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'คุณคือนักแปลหนังสืออาชีพ ส่งเฉพาะข้อความที่แปลแล้ว ห้ามมีภาษาจีน/ญี่ปุ่น/เกาหลีปนเด็ดขาด ชื่อตัวละคร/สถานที่ต้องทับศัพท์เป็นภาษาเป้าหมายเสมอ ห้ามปล่อยเป็นภาษาอังกฤษ'},{role:'user',content:prompt}],max_tokens:maxTok,temperature:temp})
     });
     if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}var err=new Error('API '+r.status+(eb?': '+eb.substring(0,200):''));err.httpStatus=r.status;throw err}
     var json=await r.json();
@@ -1562,8 +1587,8 @@ async function startTranslate(){
     var MAX_CHARS=3000;
     var translated='';
     try{
-      /* Context from previous page for continuity */
-      var prevCtx=(i>0&&translatedPages[i-1])?translatedPages[i-1]:''; 
+      /* Context from previous page for continuity (use last non-empty page) */
+      var prevCtx='';for(var _pi=translatedPages.length-1;_pi>=0;_pi--){if(translatedPages[_pi]&&translatedPages[_pi].trim()){prevCtx=translatedPages[_pi];break}}
       if(pageText.length<=MAX_CHARS){
         var t0=Date.now();
         var res=await translateRetry(pageText,key,style,customPrompt,prevCtx);
@@ -1612,7 +1637,11 @@ async function startTranslate(){
           /* ใช้ผลตรวจทานเฉพาะถ้าความยาวสมเหตุสมผล (ป้องกันการถูกตัด/หลอน) */
           var origLen=beforeReview.length;
           var revLen=reviewed.length;
-          if(revLen>=origLen*0.5&&revLen<=origLen*2.0&&reviewed.trim().length>10){
+          /* Script validation: reject if review introduced foreign characters */
+          var scriptErr=detectForeignScript(reviewed,pageText,getTgtLang());
+          if(scriptErr){
+            log('⚠️ หน้า '+pageNum+': review มีอักษร '+scriptErr+' ปลอม — ใช้แปลเดิม','error');
+          }else if(revLen>=origLen*0.5&&revLen<=origLen*2.0&&reviewed.trim().length>10){
             translated=reviewed;
             /* ── แสดง diff ว่าแก้อะไรบ้าง ── */
             var diffs=reviewDiff(beforeReview,reviewed);
@@ -1678,26 +1707,30 @@ async function startTranslate(){
 
   /* Always build output if there are any translated pages (even partial/stopped) */
   var goodPages=translatedPages.filter(function(s){return s&&s.trim()}).length;
+  var outputBuilt=false;
   if(goodPages>0){
+    var base=($('mt').value.trim()||'translated')+getTgtSuffix();
+    /* TXT: always works (no external deps) */
+    try{
+      var allText=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+      var txtBlob=new Blob(['\ufeff'+allText+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
+      $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
+      $('res').classList.add('on');outputBuilt=true;
+    }catch(e){log('TXT build: '+e.message,'error')}
+    /* EPUB: needs JSZip */
     try{
       chaps=detectChapters(translatedPages);
       rtoc();
       var epubBlob=await buildEpub(translatedPages,chaps);
-      var allText=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
-      var txtBlob=new Blob(['\ufeff'+allText+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
-      var base=($('mt').value.trim()||'translated')+getTgtSuffix();
       $('de').href=URL.createObjectURL(epubBlob);$('de').download=base+'.epub';$('es').textContent=fs(epubBlob.size);
-      $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
-      /* PDF (ใช้ HTML Print — กดปุ่มเพื่อเปิด) */
       $('dp').style.display='';
-      $('res').classList.add('on');
-      /* Side-by-side preview */
-      if(srcPages.length&&translatedPages.length){
-        $('compareSec').classList.add('on');
-        showComparePage(0);
-      }
+      outputBuilt=true;
+    }catch(e){log('⚠️ EPUB build ล้มเหลว: '+e.message+' — TXT ยังโหลดได้','error')}
+    /* Side-by-side preview + reader */
+    if(outputBuilt){
+      if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
       $('readerBtn').style.display='block';
-    }catch(e){log('EPUB build: '+e.message,'error')}
+    }
   }
 
   var stopped=!!fatalErr||isCancelled||consErr>=3;
@@ -1713,7 +1746,7 @@ async function startTranslate(){
     setSt(msg,'ok');log('🎉 '+msg,'success');
     sendNotif('CattoTranslate ✅',msg);
     playSound();recordUsage(goodPages,tokenUsage.total);
-    clearTrProgress();
+    if(outputBuilt){clearTrProgress()}else{log('⚠️ Output build ไม่สำเร็จ — เก็บ progress ไว้ใน localStorage','error')}
   }else if(isCancelled){
     /* User paused — show friendly resume message */
     saveTrProgress();
@@ -1730,8 +1763,12 @@ async function startTranslate(){
     setSt(msg3,fatalErr&&fatalErr.reason==='invalid_key'?'err':'info');
     log(msg3,fatalErr?'error':'purple');
     sendNotif('CattoTranslate',msg3);
-    /* Also set start page for resume */
-    $('sp').value=lastDone+1;
+    /* Smart resume: find first empty/failed page */
+    var smartResume=0;
+    for(var ri=0;ri<translatedPages.length;ri++){if(!translatedPages[ri]||!translatedPages[ri].trim()){smartResume=ri+1;break}}
+    if(!smartResume)smartResume=translatedPages.length+1;
+    $('sp').value=smartResume;
+    log('💡 Tip: หน้า '+smartResume+' เป็นหน้าแรกที่ยังไม่สำเร็จ — กดแปลต่อได้เลย','purple');
   }
 
   await releaseWakeLock();
