@@ -563,6 +563,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   <!-- EPUB Reader Button -->
   <div id="readerBtn" style="display:none;margin-bottom:.4rem">
     <button class="btn btn-o" id="bReader" style="width:100%;justify-content:center;gap:.3rem">📖 อ่าน EPUB ในเบราว์เซอร์</button>
+    <button class="btn btn-o" id="bQA" style="width:100%;justify-content:center;gap:.3rem;margin-top:.3rem;border-color:#e67e22;color:#e67e22">🔍 QA Scanner — ตรวจคุณภาพ+แก้ชื่อ</button>
   </div>
 
   <!-- Side-by-side Preview -->
@@ -581,6 +582,30 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
         <button id="cmpPrev">◀ <span id="cmpPrevT">ก่อนหน้า</span></button>
         <span id="cmpPage">1 / 1</span>
         <button id="cmpNext"><span id="cmpNextT">ถัดไป</span> ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QA Scanner -->
+  <div id="qaSec" style="display:none;margin-top:.3rem">
+    <div class="card">
+      <div class="card-h"><div class="card-n">🔍</div><div class="card-t">QA Scanner — ตรวจคุณภาพหลังแปล</div></div>
+      <div style="padding:.5rem .6rem;font-size:.68rem">
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.4rem">
+          <label style="display:flex;align-items:center;gap:.25rem"><input type="checkbox" id="qaScript" checked style="width:14px;height:14px"> ตรวจอักษรแปลก</label>
+          <label style="display:flex;align-items:center;gap:.25rem"><input type="checkbox" id="qaAI" checked style="width:14px;height:14px"> AI ตรวจความลื่นไหล+ชื่อ</label>
+          <label style="display:flex;align-items:center;gap:.25rem;font-size:.62rem;color:var(--text3)">หน้า: <input id="qaFrom" type="number" min="1" value="1" style="width:3rem;font-size:.62rem;padding:2px 4px"> – <input id="qaTo" type="number" min="0" value="0" style="width:3rem;font-size:.62rem;padding:2px 4px"> <span style="color:var(--text3)">(0=ทุกหน้า)</span></label>
+        </div>
+        <div style="display:flex;gap:.3rem;align-items:center">
+          <button class="btn btn-go" id="qaStart" style="padding:.3rem .8rem;font-size:.66rem">🔍 เริ่มสแกน</button>
+          <button class="btn btn-o" id="qaStop" disabled style="padding:.3rem .6rem;font-size:.62rem">■ หยุด</button>
+          <span id="qaStatus" style="font-size:.6rem;color:var(--text3)"></span>
+        </div>
+        <div id="qaResults" style="margin-top:.4rem;max-height:50vh;overflow-y:auto"></div>
+        <div id="qaActions" style="display:none;margin-top:.4rem;display:flex;gap:.3rem">
+          <button class="btn btn-go" id="qaApplyAll" style="padding:.3rem .6rem;font-size:.62rem">✅ ใช้ AI แก้ทุกจุดที่เลือก</button>
+          <button class="btn btn-o" id="qaRebuild" style="padding:.3rem .6rem;font-size:.62rem">🔄 สร้าง EPUB ใหม่</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2727,6 +2752,260 @@ $('edtSave').onclick=function(){
   setSt('✅ บันทึกการแก้ไขหน้า '+(_edtIdx+1)+' แล้ว','ok');
 };
 $('edtOverlay').onclick=function(e){if(e.target===$('edtOverlay'))closeEditModal()};
+
+/* ═══ QA Scanner ═══ */
+$('bQA').onclick=function(){$('qaSec').style.display='block';$('qaSec').scrollIntoView({behavior:'smooth'})};
+var _qaCancel=false;
+var _qaResults=[];
+
+$('qaStop').onclick=function(){_qaCancel=true;$('qaStop').disabled=true};
+
+$('qaStart').onclick=async function(){
+  if(!translatedPages||!translatedPages.length){alert('ยังไม่มีข้อมูลแปล');return}
+  _qaCancel=false;_qaResults=[];
+  var doScript=$('qaScript').checked;
+  var doAI=$('qaAI').checked;
+  if(!doScript&&!doAI){alert('เลือกอย่างน้อย 1 วิธีตรวจ');return}
+
+  var from=Math.max(1,+$('qaFrom').value||1)-1;
+  var to=+$('qaTo').value||0;
+  if(to===0||to>translatedPages.length)to=translatedPages.length;
+
+  var key=cleanKey($('ak').value);
+  var prov=$('prov').value;
+  if(doAI&&!key){alert('ใส่ API Key ก่อนเพื่อใช้ AI ตรวจ');return}
+
+  $('qaStart').disabled=true;$('qaStop').disabled=false;
+  $('qaResults').innerHTML='';
+  $('qaActions').style.display='none';
+  var tgtL=getTgtLang();
+  var totalIssues=0;
+
+  for(var i=from;i<to;i++){
+    if(_qaCancel)break;
+    var page=translatedPages[i];
+    if(!page||!page.trim())continue;
+    $('qaStatus').textContent='🔍 ตรวจหน้า '+(i+1)+'/'+to+'...';
+
+    var issues=[];
+
+    /* ── Script check (instant) ── */
+    if(doScript){
+      var src=srcPages[i]||'';
+      /* Cyrillic */
+      var cyr=page.match(/[\u0400-\u04FF]+/g);
+      if(cyr&&!/[\u0400-\u04FF]/.test(src))issues.push({type:'script',label:'Cyrillic',detail:cyr.slice(0,5).join(', ')});
+      /* CJK in non-CJK target */
+      if(!['zh','ja','ko'].includes(tgtL)){
+        var cjk=page.match(/[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]+/g);
+        if(cjk&&!/[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]/.test(src))issues.push({type:'script',label:'CJK',detail:cjk.slice(0,5).join(', ')});
+      }
+      /* English names left untransliterated — simple pattern: capitalized word among Thai */
+      if(tgtL==='th'){
+        var engNames=page.match(/(?<=[\u0E00-\u0E7F\s,.])[A-Z][a-z]{2,}(?=[\u0E00-\u0E7F\s,.])/g);
+        if(engNames){
+          var unique=[...new Set(engNames)];
+          if(unique.length>0)issues.push({type:'name',label:'ชื่ออังกฤษ',detail:unique.slice(0,8).join(', ')});
+        }
+      }
+    }
+
+    /* ── AI Quality check ── */
+    if(doAI&&!_qaCancel){
+      try{
+        var aiRes=await qaAICheck(page,i+1,key,prov,tgtL);
+        if(aiRes.score<4)issues.push({type:'ai',label:'คุณภาพ '+aiRes.score+'/5',detail:aiRes.issues});
+        if(aiRes.names&&aiRes.names.length)issues.push({type:'ai-name',label:'ชื่อควรแก้',detail:aiRes.names.join(', ')});
+        if(aiRes.suggestion)_qaResults.push({idx:i,suggestion:aiRes.suggestion});
+      }catch(e){
+        issues.push({type:'ai-err',label:'AI error',detail:e.message});
+      }
+    }
+
+    if(issues.length>0){
+      totalIssues++;
+      _qaResults.push({idx:i,issues:issues});
+      renderQARow(i,issues);
+    }
+  }
+
+  $('qaStart').disabled=false;$('qaStop').disabled=true;
+  var doneMsg=_qaCancel?'⏸ หยุด':'✅ สแกนเสร็จ';
+  $('qaStatus').textContent=doneMsg+' — พบปัญหา '+totalIssues+' หน้า';
+  if(totalIssues>0)$('qaActions').style.display='flex';
+  log('🔍 QA Scanner: '+doneMsg+' '+totalIssues+' หน้ามีปัญหา','purple');
+};
+
+function renderQARow(idx,issues){
+  var div=document.createElement('div');
+  div.style.cssText='padding:.35rem .4rem;border-bottom:1px solid var(--bg3);font-size:.62rem;display:flex;gap:.3rem;align-items:flex-start';
+  var badges=issues.map(function(is){
+    var colors={'script':'#e74c3c','name':'#e67e22','ai':'#9b59b6','ai-name':'#e67e22','ai-err':'#95a5a6'};
+    return '<span style="background:'+(colors[is.type]||'#666')+';color:#fff;padding:1px 5px;border-radius:3px;font-size:.56rem;white-space:nowrap">'+ex(is.label)+'</span> <span style="color:var(--text2);font-size:.58rem">'+ex(is.detail).slice(0,100)+'</span>';
+  }).join('<br>');
+  div.innerHTML='<span style="color:var(--primary);font-weight:600;min-width:2.5rem">หน้า '+(idx+1)+'</span>'
+    +'<div style="flex:1">'+badges+'</div>'
+    +'<button class="btn btn-o" style="padding:2px 6px;font-size:.56rem" onclick="openEditModal('+idx+')">✏️ แก้</button>'
+    +'<button class="btn btn-o" style="padding:2px 6px;font-size:.56rem;border-color:#9b59b6;color:#9b59b6" onclick="qaAIFix('+idx+')">🤖 AI แก้</button>';
+  $('qaResults').appendChild(div);
+}
+
+async function qaAICheck(text,pageNum,key,prov,tgtL){
+  var tgtName=LANG_NATIVE[tgtL]||LANG_NAMES[tgtL]||'Thai';
+  var prompt='คุณคือ QA Editor ตรวจสอบคุณภาพข้อความแปลภาษา'+tgtName+'\n\n'
+    +'**ข้อความ:**\n'+text.slice(0,3000)+'\n\n'
+    +'**ตรวจ:**\n'
+    +'1. ความลื่นไหล — อ่านเป็นธรรมชาติ'+tgtName+'หรือไม่ มีส่วนที่ฟังเป็น "ภาษาแปล" ไหม\n'
+    +'2. ชื่อตัวละคร/สถานที่ — มีชื่อที่ยังเป็นภาษาอังกฤษอยู่ไหม ถ้ามีให้ระบุและเสนอทับศัพท์\n'
+    +'3. สรรพนาม — ใช้ถูกเพศไหม\n'
+    +'4. อักษรแปลก — มี Cyrillic, จีน, ญี่ปุ่น, เกาหลี ปนไหม\n'
+    +'5. ความถูกต้องตามไวยากรณ์'+tgtName+'\n\n'
+    +'**ตอบเป็น JSON เท่านั้น:**\n'
+    +'```json\n'
+    +'{"score":4,"issues":"สรุปปัญหาสั้นๆ","names":["John→จอห์น","London→ลอนดอน"],"suggestion":"ข้อความที่แก้แล้วทั้งหมด (ถ้า score<4)"}\n'
+    +'```\n'
+    +'- score: 1-5 (5=สมบูรณ์แบบ, 4=ดี, 3=มีปัญหาเล็กน้อย, 2=มีปัญหามาก, 1=ห่วยมาก)\n'
+    +'- ถ้า score>=4 ไม่ต้องใส่ suggestion\n'
+    +'- names: เฉพาะชื่อที่ต้องทับศัพท์ (ถ้าไม่มีใส่ [])\n'
+    +'- ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น';
+
+  var result;
+  if(prov==='gemini'){
+    var gModel=getGeminiModel();
+    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+gModel+':generateContent?key='+key,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:2048,temperature:0.1}})
+    });
+    if(!r.ok)throw new Error('Gemini '+r.status);
+    var json=await r.json();
+    result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'{}';
+  }else{
+    var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น'},{role:'user',content:prompt}],max_tokens:2048,temperature:0.1})
+    });
+    if(!r.ok)throw new Error('API '+r.status);
+    var json=await r.json();
+    result=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'{}':'{}';
+  }
+  /* Parse JSON from response (may have markdown fencing) */
+  result=result.replace(/^```json?\s*/i,'').replace(/```\s*$/,'').trim();
+  try{return JSON.parse(result)}catch(e){return{score:3,issues:result.slice(0,200),names:[],suggestion:''}}
+}
+
+async function qaAIFix(idx){
+  if(!translatedPages[idx]){alert('หน้านี้ว่าง');return}
+  var key=cleanKey($('ak').value);
+  var prov=$('prov').value;
+  if(!key){alert('ใส่ API Key ก่อน');return}
+  var tgtL=getTgtLang();
+  var tgtName=LANG_NATIVE[tgtL]||LANG_NAMES[tgtL]||'Thai';
+  var text=translatedPages[idx];
+  var src=srcPages[idx]||'';
+
+  log('🤖 QA Fix หน้า '+(idx+1)+': กำลัง AI แก้ไข...','purple');
+
+  var prompt='คุณคือบรรณาธิการ'+tgtName+'มืออาชีพ แก้ไขข้อความแปลให้:\n'
+    +'1. ลื่นไหล เป็นธรรมชาติ ไม่ฟังเหมือนภาษาแปล\n'
+    +'2. ทับศัพท์ชื่อเฉพาะทุกอัน (John→จอห์น, Elizabeth→เอลิซาเบธ, London→ลอนดอน)\n'
+    +'3. สรรพนามถูกเพศ\n'
+    +'4. ลบอักษรแปลก (Cyrillic/จีน/ญี่ปุ่น/เกาหลี)\n'
+    +'5. รักษาเนื้อหาครบ ห้ามเพิ่ม/ตัด\n\n';
+  var glossPrompt=getGlossaryPrompt();if(glossPrompt)prompt+=glossPrompt;
+  var charPrompt=getCharProfilePrompt();if(charPrompt)prompt+=charPrompt;
+  if(src)prompt+='**ต้นฉบับ:**\n'+src.slice(0,2000)+'\n\n';
+  prompt+='**ข้อความที่ต้องแก้:**\n'+text+'\n\n'
+    +'ส่งเฉพาะข้อความ'+tgtName+'ที่แก้แล้ว ห้ามมีหมายเหตุ/คำอธิบาย';
+
+  try{
+    var result;
+    if(prov==='gemini'){
+      var gModel=getGeminiModel();
+      var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+gModel+':generateContent?key='+key,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:8192,temperature:0.3}})
+      });
+      if(!r.ok)throw new Error('Gemini '+r.status);
+      var json=await r.json();
+      result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
+    }else{
+      var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'แก้ไขข้อความให้สละสลวย ทับศัพท์ชื่อเฉพาะ ส่งเฉพาะข้อความที่แก้ ห้ามมีหมายเหตุ'},{role:'user',content:prompt}],max_tokens:8192,temperature:0.3})
+      });
+      if(!r.ok)throw new Error('API '+r.status);
+      var json=await r.json();
+      result=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'':'';
+    }
+    result=cleanTranslation(result);
+    /* Validate: must be reasonable length */
+    if(result.length<text.length*0.4||result.length>text.length*2.5){
+      log('⚠️ QA Fix หน้า '+(idx+1)+': ผลลัพธ์ผิดปกติ ('+result.length+' vs '+text.length+') — ไม่แก้','error');
+      return;
+    }
+    /* Script validation */
+    var scriptErr=detectForeignScript(result,src,tgtL);
+    if(scriptErr){
+      log('⚠️ QA Fix หน้า '+(idx+1)+': มีอักษร '+scriptErr+' ปลอม — ไม่แก้','error');
+      return;
+    }
+    /* Show diff */
+    var diffs=reviewDiff(text,result);
+    if(diffs.length>0){
+      log('✅ QA Fix หน้า '+(idx+1)+': แก้ '+diffs.length+' จุด','success');
+      diffs.slice(0,5).forEach(function(d){log('&nbsp;&nbsp;📝 <span style="color:#c0392b;text-decoration:line-through">'+ex(d.from)+'</span> → <span style="color:#27ae60;font-weight:600">'+ex(d.to)+'</span>')});
+    }else{
+      log('✅ QA Fix หน้า '+(idx+1)+': ไม่มีการแก้ไข','success');
+      return;
+    }
+    /* Open edit modal with pre-filled AI fix for user to review before saving */
+    _edtIdx=idx;
+    $('edtPageNum').textContent=(idx+1)+' (QA Fix)';
+    $('edtTa').value=result;
+    $('edtOverlay').classList.add('on');
+    $('edtTa').focus();
+  }catch(e){
+    log('❌ QA Fix หน้า '+(idx+1)+': '+e.message,'error');
+  }
+}
+
+$('qaApplyAll').onclick=async function(){
+  var toFix=_qaResults.filter(function(r){return r.suggestion&&r.suggestion.trim()});
+  if(!toFix.length){alert('ไม่มีหน้าที่ AI เสนอแก้ไข');return}
+  if(!confirm('จะใช้ AI แก้ '+toFix.length+' หน้า ต้องการดำเนินการ?'))return;
+  var fixed=0;
+  for(var i=0;i<toFix.length;i++){
+    var r=toFix[i];
+    var clean=cleanTranslation(r.suggestion);
+    var orig=translatedPages[r.idx];
+    if(!orig)continue;
+    if(clean.length<orig.length*0.4||clean.length>orig.length*2.5)continue;
+    var scriptErr=detectForeignScript(clean,srcPages[r.idx]||'',getTgtLang());
+    if(scriptErr)continue;
+    translatedPages[r.idx]=clean;fixed++;
+  }
+  saveTrProgress();
+  log('✅ QA Apply All: แก้ '+fixed+'/'+toFix.length+' หน้า','success');
+  setSt('✅ QA แก้แล้ว '+fixed+' หน้า','ok');
+};
+
+$('qaRebuild').onclick=async function(){
+  if(!translatedPages.length)return;
+  try{
+    setSt('🔄 กำลังสร้าง EPUB ใหม่...','info');
+    chaps=detectChapters(translatedPages);rtoc();
+    var eb=await buildEpub(translatedPages,chaps);
+    var allText=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+    var txtBlob=new Blob(['\ufeff'+allText+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
+    var base=($('mt').value.trim()||'translated')+getTgtSuffix();
+    $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
+    $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
+    $('dp').style.display='';$('res').classList.add('on');
+    saveTrProgress();
+    setSt('✅ EPUB+TXT ใหม่พร้อมดาวน์โหลด','ok');
+    log('✅ QA Rebuild: สร้าง EPUB ใหม่สำเร็จ','success');
+  }catch(e){setSt('❌ '+e.message,'err');log('❌ QA Rebuild: '+e.message,'error')}
+};
 
 /* ═══ EPUB Reader JS ═══ */
 var _rdIdx=0;
