@@ -2991,7 +2991,8 @@ $('qaStart').onclick=async function(){
 
   var key=cleanKey($('ak').value);
   var prov=$('prov').value;
-  if(doAI&&!key){alert('ใส่ API Key ก่อนเพื่อใช้ AI ตรวจ');return}
+  if(doAI&&!key){alert('ใส่ API Key ก่อนเพื่อใช้ AI ตรวจ (ช่อง API Key ด้านบน)');return}
+  if(doAI)log('🔑 QA AI: ใช้ '+prov.toUpperCase()+' key='+key.substring(0,8)+'...','purple');
 
   $('qaStart').disabled=true;$('qaStop').disabled=false;
   $('qaResults').innerHTML='';
@@ -3094,7 +3095,7 @@ async function qaAICheck(text,pageNum,key,prov,tgtL){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:2048,temperature:0.1}})
     });
-    if(!r.ok)throw new Error('Gemini '+r.status);
+    if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}throw new Error('Gemini '+r.status+(eb?' — '+eb.substring(0,200):''))}
     var json=await r.json();
     result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'{}';
   }else{
@@ -3102,7 +3103,7 @@ async function qaAICheck(text,pageNum,key,prov,tgtL){
       method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น'},{role:'user',content:prompt}],max_tokens:2048,temperature:0.1})
     });
-    if(!r.ok)throw new Error('API '+r.status);
+    if(!r.ok){var eb='';try{eb=await r.text()}catch(x){}throw new Error('Typhoon '+r.status+(eb?' — '+eb.substring(0,200):''))}
     var json=await r.json();
     result=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'{}':'{}';
   }
@@ -3143,7 +3144,7 @@ async function qaAIFix(idx){
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:8192,temperature:0.3}})
       });
-      if(!r.ok)throw new Error('Gemini '+r.status);
+      if(!r.ok){var eb=await r.text().catch(function(){return''});throw new Error('Gemini '+r.status+': '+eb.substring(0,200));}
       var json=await r.json();
       result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
     }else{
@@ -3151,7 +3152,7 @@ async function qaAIFix(idx){
         method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
         body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'แก้ไขข้อความให้สละสลวย ทับศัพท์ชื่อเฉพาะ ส่งเฉพาะข้อความที่แก้ ห้ามมีหมายเหตุ'},{role:'user',content:prompt}],max_tokens:8192,temperature:0.3})
       });
-      if(!r.ok)throw new Error('API '+r.status);
+      if(!r.ok){var eb=await r.text().catch(function(){return''});throw new Error('Typhoon '+r.status+': '+eb.substring(0,200));}
       var json=await r.json();
       result=(json.choices&&json.choices[0]&&json.choices[0].message)?json.choices[0].message.content||'':'';
     }
