@@ -651,7 +651,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.2.2';
+var APP_VERSION='v2.2.3';
 var GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite'];
 function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-flash'}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
@@ -1464,6 +1464,7 @@ async function startTranslate(){
   if(doReview&&revProv==='gemini'&&!revKey){log('⚠️ ไม่มี Gemini Review Key → ปิดการตรวจทาน','error');doReview=false}
 
   setSt('🌐 กำลังแปล '+dirLabel+' · '+pages.length+' หน้า'+(doReview?' (+ ตรวจทาน)':''),'info');
+  $('lb').classList.add('open'); /* เปิด log panel ให้เห็นความคืบหน้า */
   log('🌐 เริ่มแปล: '+dirLabel+' · '+pages.length+' หน้า · สไตล์: '+style+(doReview?' · ✅ ตรวจทานด้วย '+(revProv==='gemini'?'Gemini':'ตัวเอง'):''));
   updateStats();
 
@@ -1478,6 +1479,7 @@ async function startTranslate(){
     var pageNum=s0+i+1;
 
     $('pt').textContent='🌐 หน้า '+pageNum+'/'+end;
+    $('pm').textContent='⏳ กำลังแปลหน้า '+pageNum+'...';
     var pct=Math.round(stats.done/stats.total*100);
     $('pp').textContent=pct+'%';$('pb').style.width=pct+'%';
 
