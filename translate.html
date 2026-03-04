@@ -498,6 +498,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
       <button class="rb-export" id="rbExport">💾 Export JSON</button>
       <button class="rb-import" id="rbImport">📂 Import JSON</button>
       <button class="rb-del" id="rbDel">🗑️ ลบทิ้ง</button>
+      <button class="rb-build" id="rbBackup" style="display:none;background:#8B5CF6">🔄 กู้จาก Backup</button>
       <input type="file" id="rbFi" accept=".json" hidden>
     </div>
   </div>
@@ -651,7 +652,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.3';
+var APP_VERSION='v2.4';
 var GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite'];
 function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-flash'}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
@@ -1448,6 +1449,13 @@ async function startTranslate(){
   var end=(e0===0||e0>srcPages.length)?srcPages.length:e0;
   var pages=srcPages.slice(s0,end);
 
+  /* ═══ Safety: backup existing progress before starting ═══ */
+  var existingSave=loadTrProgress();
+  if(existingSave&&existingSave.translatedPages&&existingSave.translatedPages.filter(function(s){return s&&s.trim()}).length>0){
+    try{localStorage.setItem('bepub_translate_backup',JSON.stringify(existingSave));
+    log('💾 สำรองข้อมูลเดิมไว้แล้ว ('+existingSave.translatedPages.filter(function(s){return s&&s.trim()}).length+' หน้า)','purple')}catch(e){}
+  }
+
   /* ═══ Resume support: keep already-translated pages if resuming ═══ */
   var isResume=(s0>0&&translatedPages.length>=s0);
   if(isResume){
@@ -1597,6 +1605,24 @@ async function startTranslate(){
       full+=translated+'\n\n--- Page Break ---\n\n';
       stats.done++;consErr=0;
       saveTrProgress(); /* save after each page */
+      /* Also keep backup copy every save */
+      try{localStorage.setItem('bepub_translate_backup',localStorage.getItem(LS_TR_KEY))}catch(e){}
+
+      /* Auto-checkpoint: download JSON backup every 10 pages */
+      var totalDone=translatedPages.filter(function(s){return s&&s.trim()}).length;
+      if(totalDone>0&&totalDone%10===0){
+        try{
+          var cpData=localStorage.getItem(LS_TR_KEY);
+          if(cpData){
+            var cpBlob=new Blob([cpData],{type:'application/json'});
+            var cpA=document.createElement('a');
+            cpA.href=URL.createObjectURL(cpBlob);
+            cpA.download='catto_checkpoint_'+totalDone+'pages_'+new Date().toISOString().slice(0,16).replace(':','')+'.json';
+            cpA.click();
+            log('💾 Auto-checkpoint: บันทึกไฟล์ backup '+totalDone+' หน้า','success');
+          }
+        }catch(e){}
+      }
 
       /* ETA */
       var remain=stats.total-stats.done;
@@ -1621,13 +1647,15 @@ async function startTranslate(){
 
   $('pb').style.width='100%';$('pp').textContent='100%';$('prg').classList.remove('run');$('pm').textContent='';
 
-  var hasContent=full.trim().length>0;
-  if(hasContent){
+  /* Always build output if there are any translated pages (even partial/stopped) */
+  var goodPages=translatedPages.filter(function(s){return s&&s.trim()}).length;
+  if(goodPages>0){
     try{
       chaps=detectChapters(translatedPages);
       rtoc();
       var epubBlob=await buildEpub(translatedPages,chaps);
-      var txtBlob=new Blob(['\ufeff'+full+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
+      var allText=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+      var txtBlob=new Blob(['\ufeff'+allText+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
       var base=($('mt').value.trim()||'translated')+getTgtSuffix();
       $('de').href=URL.createObjectURL(epubBlob);$('de').download=base+'.epub';$('es').textContent=fs(epubBlob.size);
       $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
@@ -1644,7 +1672,6 @@ async function startTranslate(){
   }
 
   var stopped=!!fatalErr||isCancelled||consErr>=3;
-  var goodPages=translatedPages.filter(function(s){return s&&s.trim()}).length;
   var tokStr=tokenUsage.total>0?' · 🎯 '+tokenUsage.total.toLocaleString()+' tokens':'';
 
   if(!stopped){
@@ -2250,6 +2277,11 @@ hr::after {
     if(saved.meta.d)$('md').value=saved.meta.d;
   }
   log('💾 พบงานแปลค้าง: '+good+'/'+total+' หน้า ('+timeAgo+')','purple');
+  /* Check for backup too */
+  try{var bk=localStorage.getItem('bepub_translate_backup');
+  if(bk){var bkd=JSON.parse(bk);var bkGood=bkd.translatedPages?bkd.translatedPages.filter(function(s){return s&&s.trim()}).length:0;
+  if(bkGood>0){$('rbBackup').style.display='inline-flex';$('rbBackup').title='Backup: '+bkGood+' หน้า';
+  log('🔄 พบ Backup เพิ่มเติม: '+bkGood+' หน้า','purple')}}}catch(e){}
 })();
 
 /* ═══ Recovery Actions ═══ */
@@ -2360,6 +2392,46 @@ $('rbDel').onclick=function(){
   if(!confirm('ลบข้อมูลแปลค้างทิ้ง? (ไม่สามารถกู้คืนได้)'))return;
   clearTrProgress();$('recBox').classList.remove('on');
   setSt('🗑️ ลบข้อมูลค้างแล้ว','info');log('🗑️ ลบ localStorage','purple');
+};
+
+/* ═══ Restore from Backup ═══ */
+$('rbBackup').onclick=async function(){
+  try{
+    var bk=localStorage.getItem('bepub_translate_backup');
+    if(!bk){setSt('❌ ไม่พบ backup','err');return}
+    var saved=JSON.parse(bk);
+    if(!saved||!saved.translatedPages||!saved.translatedPages.length){setSt('❌ backup ว่างเปล่า','err');return}
+    /* Save backup as main progress */
+    localStorage.setItem(LS_TR_KEY,bk);
+    /* Now build EPUB from it */
+    translatedPages=saved.translatedPages;
+    srcPages=saved.srcPages||[];
+    _dir=saved.dir||'en2th';
+    if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
+    if(saved.tgtLangCode)$('tgtLang').value=saved.tgtLangCode;
+    updateDir();
+    stats=saved.stats||{total:translatedPages.length,done:translatedPages.filter(function(s){return s&&s.trim()}).length,skipped:0,ocr:0};
+    tokenUsage=saved.tokenUsage||{prompt:0,completion:0,total:0};
+    if(saved.meta){if(saved.meta.t)$('mt').value=saved.meta.t;if(saved.meta.a)$('ma').value=saved.meta.a;if(saved.meta.p)$('mp').value=saved.meta.p;if(saved.meta.l)$('ml').value=saved.meta.l;if(saved.meta.d)$('md').value=saved.meta.d}
+    chaps=saved.chaps||detectChapters(translatedPages);
+    rtoc();
+    var title=$('mt').value.trim()||'translated';
+    var base=title+getTgtSuffix();
+    setSt('กำลังสร้าง EPUB จาก Backup...','info');
+    var eb=await buildEpub(translatedPages,chaps);
+    var full=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+    var tb=new Blob(['\ufeff'+full+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
+    $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
+    $('dt').href=URL.createObjectURL(tb);$('dt').download=base+'.txt';$('ts').textContent=fs(tb.size);
+    $('dp').style.display='';
+    $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
+    if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
+    $('readerBtn').style.display='block';
+    $('recBox').classList.remove('on');
+    var good=translatedPages.filter(function(s){return s&&s.trim()}).length;
+    setSt('✅ กู้คืนจาก Backup สำเร็จ! '+good+' หน้า — EPUB + TXT พร้อมดาวน์โหลด','ok');
+    log('🎉 กู้คืนจาก Backup: '+good+' หน้า','success');
+  }catch(e){setSt('❌ '+e.message,'err');log('❌ Backup: '+e.message,'error')}
 };
 
 /* ═══ Glossary JS ═══ */
