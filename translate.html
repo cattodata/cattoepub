@@ -506,8 +506,9 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   <!-- Buttons -->
   <div class="brow">
     <button class="btn btn-go" id="bgo" disabled>🌐 เริ่มแปล</button>
-    <button class="btn btn-st" id="bst" disabled>■ หยุด</button>
+    <button class="btn btn-st" id="bst" disabled>⏸ พักก่อน</button>
   </div>
+  <div style="text-align:center;margin-bottom:.3rem;font-size:.68rem;color:var(--muted)" id="pageRangeInfo"></div>
   <div style="text-align:center;margin-bottom:.5rem;display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap">
     <button onclick="reportBug()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;cursor:pointer;font-size:.72rem;font-weight:600;color:var(--text2);transition:border-color .2s,color .2s,box-shadow .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)';this.style.boxShadow='0 2px 8px rgba(239,68,68,0.15)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.boxShadow=''">🐛 Report Bug / แจ้งปัญหา</button>
     <a href="mailto:cattodata@gmail.com?subject=CattoTranslate%20—%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20%E2%98%95&body=%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B5%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%AD%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%AA%E0%B8%99%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%99%E0%B8%B8%E0%B8%99%20CattoTranslate%20%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A%20%E0%B8%82%E0%B8%AD%E0%B8%9A%E0%B8%B1%E0%B8%8D%E0%B8%8A%E0%B8%B5%E0%B8%AA%E0%B8%B3%E0%B8%AB%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B9%82%E0%B8%AD%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%A7%E0%B8%A2%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%9A" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:100px;cursor:pointer;font-size:.72rem;font-weight:600;color:var(--text2);text-decoration:none;transition:border-color .2s,color .2s,box-shadow .2s" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.boxShadow='0 2px 8px rgba(139,92,246,0.15)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.boxShadow=''">☕ Buy Me a Coffee / สนับสนุนแอพนี้</a>
@@ -652,7 +653,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.4';
+var APP_VERSION='v2.5';
 var GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite'];
 function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-flash'}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
@@ -1436,7 +1437,7 @@ async function reviewRetry(original,translated,reviewKey,reviewProvider){
 
 /* ═══ Main Process ═══ */
 $('bgo').onclick=function(){startTranslate().catch(function(e){log('❌ ระบบ: '+e.message,'error');setSt('❌ '+e.message,'err');isProc=false;$('bgo').disabled=false;$('bst').disabled=true})};
-$('bst').onclick=()=>{isCancelled=true;log('🛑 หยุด','error')};
+$('bst').onclick=()=>{isCancelled=true;$('bst').disabled=true;$('bst').textContent='⏸ กำลังหยุด...';log('⏸ กำลังพัก — รอหน้าปัจจุบันเสร็จ...','purple')};
 
 async function startTranslate(){
   if(isProc)return;isProc=true;isCancelled=false;
@@ -1610,7 +1611,7 @@ async function startTranslate(){
 
       /* Auto-checkpoint: download JSON backup every 10 pages */
       var totalDone=translatedPages.filter(function(s){return s&&s.trim()}).length;
-      if(totalDone>0&&totalDone%10===0){
+      if(totalDone>0&&totalDone%5===0){
         try{
           var cpData=localStorage.getItem(LS_TR_KEY);
           if(cpData){
@@ -1674,21 +1675,38 @@ async function startTranslate(){
   var stopped=!!fatalErr||isCancelled||consErr>=3;
   var tokStr=tokenUsage.total>0?' · 🎯 '+tokenUsage.total.toLocaleString()+' tokens':'';
 
+  /* Show page range info */
+  var firstPage=s0+1;
+  var lastDone=s0+stats.done;
+  $('pageRangeInfo').textContent='📄 แปลแล้ว: หน้า '+firstPage+' – '+lastDone+' ('+goodPages+' หน้า)';
+
   if(!stopped){
-    var msg='✅ แปลเสร็จ! '+goodPages+' หน้า'+tokStr;
+    var msg='✅ แปลเสร็จ! '+goodPages+' หน้า (หน้า '+firstPage+'-'+lastDone+')'+tokStr;
     setSt(msg,'ok');log('🎉 '+msg,'success');
     sendNotif('CattoTranslate ✅',msg);
     playSound();recordUsage(goodPages,tokenUsage.total);
     clearTrProgress();
+  }else if(isCancelled){
+    /* User paused — show friendly resume message */
+    saveTrProgress();
+    var msg2='⏸ พักแล้ว — ได้ '+goodPages+' หน้า (หน้า '+firstPage+'-'+lastDone+')'+tokStr;
+    setSt(msg2,'info');
+    log('⏸ พักแล้ว — กดปุ่ม "🌐 เริ่มแปล" เพื่อแปลต่อจากหน้า '+(lastDone+1),'success');
+    log('💡 Tip: ตั้ง "หน้าเริ่ม" เป็น '+(lastDone+1)+' แล้วกดแปลต่อได้เลย','purple');
+    sendNotif('CattoTranslate ⏸',msg2);
+    /* Pre-set start page for easy resume */
+    $('sp').value=lastDone+1;
   }else{
-    var stopReason=isCancelled?'หยุดโดยผู้ใช้':fatalErr?(fatalErr.reason==='invalid_key'?'🔑 Key ไม่ถูกต้อง':fatalErr.reason==='quota_exceeded'?'💳 Token หมด':'🚫 Rate limit'):'Error '+consErr+' ครั้งติด';
-    var msg2=stopReason+' — ได้ '+goodPages+'/'+stats.total+' หน้า'+tokStr;
-    setSt(msg2,fatalErr&&fatalErr.reason==='invalid_key'?'err':'info');
-    log(msg2,fatalErr?'error':'purple');
-    sendNotif('CattoTranslate',msg2);
+    var stopReason=fatalErr?(fatalErr.reason==='invalid_key'?'🔑 Key ไม่ถูกต้อง':fatalErr.reason==='quota_exceeded'?'💳 Token หมด':'🚫 Rate limit'):'Error '+consErr+' ครั้งติด';
+    var msg3=stopReason+' — ได้ '+goodPages+'/'+stats.total+' หน้า (หน้า '+firstPage+'-'+lastDone+')'+tokStr;
+    setSt(msg3,fatalErr&&fatalErr.reason==='invalid_key'?'err':'info');
+    log(msg3,fatalErr?'error':'purple');
+    sendNotif('CattoTranslate',msg3);
+    /* Also set start page for resume */
+    $('sp').value=lastDone+1;
   }
 
-  $('bgo').disabled=false;$('bst').disabled=true;isProc=false;
+  $('bgo').disabled=false;$('bst').disabled=true;$('bst').textContent='⏸ พักก่อน';isProc=false;
 }
 
 /* ═══ Side-by-side Compare ═══ */
