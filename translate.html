@@ -442,12 +442,16 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
       </label>
     </div>
     <div id="reviewOpts" style="display:none;margin-top:.3rem;padding:.5rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--r)">
+      <div class="f" style="margin-bottom:.3rem"><label class="fl" id="reviewModeLabel">โหมดตรวจทาน</label><select class="fi" id="reviewMode" style="cursor:pointer">
+        <option value="auto-safe">🛡️ Auto-Safe — รับเฉพาะที่ผ่านเช็ค (แนะนำ)</option>
+        <option value="log-only">📋 Log Only — แค่บอกว่าจะแก้อะไร ไม่เปลี่ยน</option>
+      </select></div>
       <div class="f" style="margin-bottom:.3rem"><label class="fl" id="reviewProvLabel">ตรวจทานโดย</label><select class="fi" id="reviewProv" style="cursor:pointer">
         <option value="self" id="optRevSelf">🔄 ตัวเดิม (Self-review) — ใช้ AI เดิมตรวจซ้ำ</option>
         <option value="gemini" id="optRevGemini">✨ Gemini Flash — ใช้ Gemini ตรวจทาน (แนะนำ)</option>
       </select></div>
       <div class="f" id="reviewKeyRow" style="display:none"><label class="fl" id="reviewKeyLabel">Gemini API Key (สำหรับตรวจทาน)</label><input class="fi" id="reviewKey" type="password" placeholder="AIzaSy..."></div>
-      <div style="font-size:.65rem;color:var(--muted);margin-top:.2rem" id="reviewNote">⚠️ ใช้ token เพิ่ม ~2x แต่คุณภาพดีขึ้นมาก — ตรวจความถูกต้อง, ธรรมชาติ, ไม่หลอน</div>
+      <div style="font-size:.65rem;color:var(--muted);margin-top:.2rem" id="reviewNote">🛡️ Auto-Safe: ใช้ผลตรวจทานเฉพาะที่ผ่านเช็คทุกข้อ (อักษรแปลก+ความยาว+คำเปลี่ยนไม่เกิน 30%) ถ้าไม่ผ่านใช้แปลเดิม<br>📋 Log Only: ไม่เปลี่ยนอะไร แค่บอกใน log ว่า review จะแก้อะไร — ไว้ตัดสินใจเองทีหลังใน QA Scanner</div>
     </div>
 
     <!-- Glossary -->
@@ -684,6 +688,7 @@ function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-fl
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
 const $=id=>document.getElementById(id);
 let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancelled=false,isProc=false,coverUrl,coverMime;
+var beforeReviewPages=[]; /* เก็บข้อความก่อนตรวจทาน — ใช้ undo review ได้ */
 var tokenUsage={prompt:0,completion:0,total:0},stats={total:0,done:0,skipped:0,ocr:0};
 var _dir='en2th'; /* legacy compat — now derived from dropdowns */
 var startTime=0;
@@ -864,10 +869,12 @@ $('reviewProv').onchange=function(){
   $('reviewKeyRow').style.display=(v==='gemini')?'block':'none';
 };
 $('reviewKey').oninput=function(){this.value=cleanKey(this.value);localStorage.setItem('bepub_reviewKey',this.value)};
+$('reviewMode').onchange=function(){localStorage.setItem('bepub_reviewMode',this.value)};
 /* Restore review settings */
 if(localStorage.getItem('bepub_review')==='1'){$('reviewOn').checked=true;$('reviewOpts').style.display='block'}
 if(localStorage.getItem('bepub_reviewProv')){$('reviewProv').value=localStorage.getItem('bepub_reviewProv');if($('reviewProv').value==='gemini')$('reviewKeyRow').style.display='block'}
 if(localStorage.getItem('bepub_reviewKey'))$('reviewKey').value=localStorage.getItem('bepub_reviewKey');
+if(localStorage.getItem('bepub_reviewMode'))$('reviewMode').value=localStorage.getItem('bepub_reviewMode');
 
 /* ═══ Language Direction ═══ */
 function updateDir(){
@@ -1213,7 +1220,7 @@ $('ci').onchange=()=>{var f=$('ci').files[0];if(!f)return;coverMime=f.type;var r
 var LS_TR_KEY='bepub_translate_progress';
 function saveTrProgress(){
   try{localStorage.setItem(LS_TR_KEY,JSON.stringify({
-    v:1,srcPages:srcPages,translatedPages:translatedPages,dir:_dir,
+    v:2,srcPages:srcPages,translatedPages:translatedPages,beforeReviewPages:beforeReviewPages,dir:_dir,
     srcLangCode:getSrcLang(),tgtLangCode:getTgtLang(),
     stats:stats,tokenUsage:tokenUsage,chaps:chaps,
     meta:{t:$('mt').value,a:$('ma').value,p:$('mp').value,l:$('ml').value,d:$('md').value},
@@ -1252,6 +1259,18 @@ function detectForeignScript(text,srcText,tgtLang){
   if(matches&&!confusables.test(srcText))mixCount=matches.length;
   if(mixCount>=3)return 'MixedScript('+mixCount+')';
   return false;
+}
+/* Calculate word-level change ratio between before and after review */
+function calcChangeRatio(before,after){
+  if(!before||!after)return 1;
+  if(before===after)return 0;
+  var wB=before.split(/[\s,.!?;:\-\n]+/).filter(function(w){return w.length>0});
+  var wA=after.split(/[\s,.!?;:\-\n]+/).filter(function(w){return w.length>0});
+  if(wB.length===0)return wA.length>0?1:0;
+  var setA=new Set(wA);
+  var changed=0;
+  for(var i=0;i<wB.length;i++){if(!setA.has(wB[i]))changed++}
+  return changed/wB.length;
 }
 function cleanTranslation(text){
   /* Remove stray CJK characters (Chinese/Japanese) mixed in Thai output */
@@ -1649,39 +1668,67 @@ async function startTranslate(){
       }
 
       /* ── Review/Proofread pass ── */
+      var reviewMode=$('reviewMode')?$('reviewMode').value:'auto-safe';
       if(doReview&&translated.trim()&&!isCancelled){
         try{
           $('pt').textContent='🔍 ตรวจทานหน้า '+pageNum+'/'+end;
-          log('🔍 หน้า '+pageNum+': กำลังตรวจทาน...','purple');
+          log('🔍 หน้า '+pageNum+': กำลังตรวจทาน ('+reviewMode+')...','purple');
           var beforeReview=translated;
           var revRes=await reviewRetry(pageText,translated,revKey,revProvider);
           var reviewed=cleanTranslation(revRes.text);
           tokenUsage.prompt+=(revRes.usage.prompt_tokens||0);
           tokenUsage.completion+=(revRes.usage.completion_tokens||0);
           tokenUsage.total+=(revRes.usage.total_tokens||0);
-          /* ใช้ผลตรวจทานเฉพาะถ้าความยาวสมเหตุสมผล (ป้องกันการถูกตัด/หลอน) */
+
+          /* Always store beforeReview for undo */
+          while(beforeReviewPages.length<translatedPages.length)beforeReviewPages.push('');
+          beforeReviewPages.push(beforeReview);
+
           var origLen=beforeReview.length;
           var revLen=reviewed.length;
-          /* Script validation: reject if review introduced foreign characters */
+          /* Validation checks */
           var scriptErr=detectForeignScript(reviewed,pageText,getTgtLang());
-          if(scriptErr){
-            log('⚠️ หน้า '+pageNum+': review มีอักษร '+scriptErr+' ปลอม — ใช้แปลเดิม','error');
-          }else if(revLen>=origLen*0.5&&revLen<=origLen*2.0&&reviewed.trim().length>10){
-            translated=reviewed;
-            /* ── แสดง diff ว่าแก้อะไรบ้าง ── */
+          var changeRatio=calcChangeRatio(beforeReview,reviewed);
+          var reject=false,rejectReason='';
+
+          if(scriptErr){reject=true;rejectReason='อักษร '+scriptErr+' ปลอม'}
+          else if(revLen<origLen*0.5||revLen>origLen*2.0){reject=true;rejectReason='ความยาวผิดปกติ ('+revLen+' vs '+origLen+')'}
+          else if(reviewed.trim().length<10){reject=true;rejectReason='ข้อความสั้นเกินไป'}
+          else if(changeRatio>0.4){reject=true;rejectReason='เปลี่ยนมากเกินไป ('+Math.round(changeRatio*100)+'% ≥ 40%)'}
+
+          if(reviewMode==='log-only'){
+            /* Log only: show diff but don't change anything */
             var diffs=reviewDiff(beforeReview,reviewed);
             if(diffs.length>0){
-              log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ — แก้ '+diffs.length+' จุด:','success');
-              diffs.forEach(function(d){log('&nbsp;&nbsp;📝 <span style="color:#c0392b;text-decoration:line-through">'+ex(d.from)+'</span> → <span style="color:#27ae60;font-weight:600">'+ex(d.to)+'</span>')});
+              log('📋 หน้า '+pageNum+': review จะแก้ '+diffs.length+' จุด'+(reject?' ⚠️ '+rejectReason:'')+'  (log-only ไม่เปลี่ยน):');
+              diffs.slice(0,4).forEach(function(d){log('&nbsp;&nbsp;📝 <span style="color:#c0392b;text-decoration:line-through">'+ex(d.from)+'</span> → <span style="color:#27ae60;font-weight:600">'+ex(d.to)+'</span>')});
             }else{
-              log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ — ไม่มีการแก้ไข ✓','success');
+              log('📋 หน้า '+pageNum+': review ไม่มีการแก้ ✓ (log-only)','success');
             }
           }else{
-            log('⚠️ หน้า '+pageNum+': ผลตรวจทานผิดปกติ ('+revLen+' vs '+origLen+') — ใช้แปลเดิม','error');
+            /* auto-safe: accept if passes all checks */
+            if(reject){
+              log('⚠️ หน้า '+pageNum+': review ไม่ผ่าน: '+rejectReason+' — ใช้แปลเดิม','error');
+            }else{
+              translated=reviewed;
+              var diffs=reviewDiff(beforeReview,reviewed);
+              if(diffs.length>0){
+                log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ — แก้ '+diffs.length+' จุด (เปลี่ยน '+Math.round(changeRatio*100)+'%):','success');
+                diffs.slice(0,4).forEach(function(d){log('&nbsp;&nbsp;📝 <span style="color:#c0392b;text-decoration:line-through">'+ex(d.from)+'</span> → <span style="color:#27ae60;font-weight:600">'+ex(d.to)+'</span>')});
+              }else{
+                log('✅ หน้า '+pageNum+': ตรวจทานเสร็จ — ไม่มีการแก้ไข ✓','success');
+              }
+            }
           }
         }catch(revErr){
           log('⚠️ หน้า '+pageNum+': ตรวจทานล้มเหลว — ใช้แปลเดิม','error');
+          while(beforeReviewPages.length<translatedPages.length)beforeReviewPages.push('');
+          beforeReviewPages.push('');
         }
+      }else{
+        /* No review — fill placeholder */
+        while(beforeReviewPages.length<translatedPages.length)beforeReviewPages.push('');
+        beforeReviewPages.push('');
       }
 
       translatedPages.push(translated);
@@ -1809,12 +1856,25 @@ function showComparePage(idx){
   _cmpIdx=idx;
   $('cmpSrc').textContent=srcPages[s0+idx]||'(ว่าง)';
   var tgtText=(translatedPages[idx]||'(ยังไม่แปล)').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  $('cmpTgt').innerHTML='<div style="cursor:pointer" title="✏️ คลิกเพื่อแก้ไข">'+tgtText+'</div>';
+  /* Check if this page has a beforeReview version */
+  var hasBR=beforeReviewPages[idx]&&beforeReviewPages[idx].trim()&&beforeReviewPages[idx]!==translatedPages[idx];
+  var undoBtn=hasBR?'<div style="margin-top:.3rem;display:flex;gap:.3rem"><button onclick="undoReview('+idx+')" style="font-size:.56rem;padding:2px 6px;border:1px solid #e67e22;color:#e67e22;background:none;border-radius:4px;cursor:pointer">↩ ใช้แปลเดิม (ก่อน review)</button><button onclick="openEditModal('+idx+')" style="font-size:.56rem;padding:2px 6px;border:1px solid var(--primary);color:var(--primary);background:none;border-radius:4px;cursor:pointer">✏️ แก้ไข</button></div>':'';
+  $('cmpTgt').innerHTML='<div style="cursor:pointer" title="✏️ คลิกเพื่อแก้ไข">'+tgtText+'</div>'+undoBtn;
   $('cmpTgt').querySelector('div').onclick=function(){openEditModal(idx)};
   $('cmpPage').textContent=(idx+1)+' / '+maxP;
 }
 $('cmpPrev').onclick=function(){showComparePage(_cmpIdx-1)};
 $('cmpNext').onclick=function(){showComparePage(_cmpIdx+1)};
+
+function undoReview(idx){
+  if(!beforeReviewPages[idx]||!beforeReviewPages[idx].trim()){log('⚠️ หน้า '+(idx+1)+': ไม่มีข้อมูลก่อน review','error');return}
+  var old=translatedPages[idx];
+  translatedPages[idx]=beforeReviewPages[idx];
+  saveTrProgress();
+  showComparePage(idx);
+  log('↩ หน้า '+(idx+1)+': ย้อนกลับเป็นแปลเดิม (ก่อน review)','success');
+  setSt('↩ ย้อนหน้า '+(idx+1)+' เป็นแปลเดิม','ok');
+}
 
 /* ═══ Build EPUB ═══ */
 function m2h(md){
@@ -2432,6 +2492,7 @@ $('rbResume').onclick=function(){
   /* Restore all state so user can hit "เริ่มแปล" */
   srcPages=saved.srcPages;
   translatedPages=saved.translatedPages||[];
+  beforeReviewPages=saved.beforeReviewPages||[];
   _dir=saved.dir||'en2th';
   if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
   if(saved.tgtLangCode)$('tgtLang').value=saved.tgtLangCode;
@@ -2514,6 +2575,7 @@ $('rbBackup').onclick=async function(){
     localStorage.setItem(LS_TR_KEY,bk);
     /* Now build EPUB from it */
     translatedPages=saved.translatedPages;
+    beforeReviewPages=saved.beforeReviewPages||[];
     srcPages=saved.srcPages||[];
     _dir=saved.dir||'en2th';
     if(saved.srcLangCode)$('srcLang').value=saved.srcLangCode;
