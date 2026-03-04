@@ -567,7 +567,10 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   <!-- EPUB Reader Button -->
   <div id="readerBtn" style="display:none;margin-bottom:.4rem">
     <button class="btn btn-o" id="bReader" style="width:100%;justify-content:center;gap:.3rem">📖 อ่าน EPUB ในเบราว์เซอร์</button>
-    <button class="btn btn-o" id="bQA" style="width:100%;justify-content:center;gap:.3rem;margin-top:.3rem;border-color:#e67e22;color:#e67e22">🔍 QA Scanner — ตรวจคุณภาพ+แก้ชื่อ</button>
+  </div>
+  <!-- QA Scanner Button (independent — shows when translatedPages exist) -->
+  <div id="qaBtn" style="display:none;margin-bottom:.4rem">
+    <button class="btn btn-o" id="bQA" style="width:100%;justify-content:center;gap:.3rem;border-color:#e67e22;color:#e67e22">🔍 QA Scanner — ตรวจคุณภาพ+แก้ชื่อ</button>
   </div>
 
   <!-- Side-by-side Preview -->
@@ -959,8 +962,9 @@ function resetBookState(){
   $('dp').style.display='none';
   /* Clear TOC */
   $('tocsec').style.display='none';$('tocl').innerHTML='';
-  /* Clear reader */
+  /* Clear reader + QA */
   $('readerBtn').style.display='none';
+  $('qaBtn').style.display='none';$('qaSec').style.display='none';
   /* Clear progress */
   $('prg').style.display='none';$('pb').style.width='0%';$('pp').textContent='0%';
   /* Clear stats */
@@ -1803,6 +1807,7 @@ async function startTranslate(){
       if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
       $('readerBtn').style.display='block';
     }
+    if(translatedPages.length)$('qaBtn').style.display='block';
   }
 
   var stopped=!!fatalErr||isCancelled||consErr>=3;
@@ -2480,6 +2485,7 @@ $('rbBuild').onclick=async function(){
     $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
     if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
     $('readerBtn').style.display='block';
+    $('qaBtn').style.display='block';
     $('recBox').classList.remove('on');
     setSt('✅ กู้คืนสำเร็จ! EPUB + PDF พร้อมดาวน์โหลด','ok');
     log('🎉 กู้คืน: '+translatedPages.filter(function(s){return s&&s.trim()}).length+' หน้า','success');
@@ -2510,6 +2516,7 @@ $('rbResume').onclick=function(){
   $('srcInfo').style.display='block';
   $('srcInfo').innerHTML='📗 กู้คืน: '+srcPages.length+' หน้า · แปลแล้ว '+done+' หน้า · จะแปลต่อจากหน้า '+resumeFrom;
   $('recBox').classList.remove('on');
+  if(done>0){$('qaBtn').style.display='block';if(srcPages.length){$('compareSec').classList.add('on');showComparePage(0)}}
   ck();updateCost();
   setSt('▶️ พร้อมแปลต่อ — กดปุ่ม "เริ่มแปล" ได้เลย','info');
   log('▶️ กู้คืนสถานะ: แปลต่อจากหน้า '+resumeFrom,'success');
@@ -2598,6 +2605,7 @@ $('rbBackup').onclick=async function(){
     $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
     if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
     $('readerBtn').style.display='block';
+    $('qaBtn').style.display='block';
     $('recBox').classList.remove('on');
     var good=translatedPages.filter(function(s){return s&&s.trim()}).length;
     setSt('✅ กู้คืนจาก Backup สำเร็จ! '+good+' หน้า — EPUB + TXT พร้อมดาวน์โหลด','ok');
