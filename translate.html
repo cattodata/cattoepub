@@ -615,7 +615,7 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
           <span id="qaStatus" style="font-size:.6rem;color:var(--text3)"></span>
         </div>
         <div id="qaResults" style="margin-top:.4rem;max-height:50vh;overflow-y:auto"></div>
-        <div id="qaActions" style="display:none;margin-top:.4rem;display:flex;gap:.3rem;flex-wrap:wrap">
+        <div id="qaActions" style="display:none;margin-top:.4rem;gap:.3rem;flex-wrap:wrap">
           <button class="btn btn-go" id="qaApplyAll" style="padding:.3rem .6rem;font-size:.62rem">✅ ใช้ AI แก้ทุกจุดที่เลือก</button>
           <button class="btn btn-o" id="qaRebuild" style="padding:.3rem .6rem;font-size:.62rem">🔄 สร้าง EPUB ใหม่</button>
         </div>
@@ -2868,6 +2868,8 @@ function openEditModal(idx){
   $('edtTa').value=translatedPages[idx]||'';
   $('edtOverlay').classList.add('on');
   $('edtTa').focus();
+  /* Scroll modal into view */
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function closeEditModal(){$('edtOverlay').classList.remove('on');_edtIdx=-1}
 $('edtClose').onclick=closeEditModal;
@@ -3058,16 +3060,43 @@ $('qaStart').onclick=async function(){
 
 function renderQARow(idx,issues){
   var div=document.createElement('div');
-  div.style.cssText='padding:.35rem .4rem;border-bottom:1px solid var(--bg3);font-size:.62rem;display:flex;gap:.3rem;align-items:flex-start';
+  div.id='qaRow'+idx;
+  div.style.cssText='padding:.35rem .4rem;border-bottom:1px solid var(--bg3);font-size:.62rem;display:flex;gap:.3rem;align-items:flex-start;flex-wrap:wrap';
   var badges=issues.map(function(is){
     var colors={'script':'#e74c3c','name':'#e67e22','ai':'#9b59b6','ai-name':'#e67e22','ai-err':'#95a5a6'};
     return '<span style="background:'+(colors[is.type]||'#666')+';color:#fff;padding:1px 5px;border-radius:3px;font-size:.56rem;white-space:nowrap">'+ex(is.label)+'</span> <span style="color:var(--text2);font-size:.58rem">'+ex(is.detail).slice(0,100)+'</span>';
   }).join('<br>');
   div.innerHTML='<span style="color:var(--primary);font-weight:600;min-width:2.5rem">หน้า '+(idx+1)+'</span>'
     +'<div style="flex:1">'+badges+'</div>'
-    +'<button class="btn btn-o" style="padding:2px 6px;font-size:.56rem" onclick="openEditModal('+idx+')">✏️ แก้</button>'
-    +'<button class="btn btn-o" style="padding:2px 6px;font-size:.56rem;border-color:#9b59b6;color:#9b59b6" onclick="qaAIFix('+idx+')">🤖 AI แก้</button>';
+    +'<button class="btn btn-o" style="padding:2px 6px;font-size:.56rem" onclick="qaEdit('+idx+',this)">✏️ แก้</button>'
+    +'<button id="qaFixBtn'+idx+'" class="btn btn-o" style="padding:2px 6px;font-size:.56rem;border-color:#9b59b6;color:#9b59b6" onclick="qaFixClick('+idx+',this)">🤖 AI แก้</button>'
+    +'<div id="qaRowMsg'+idx+'" style="width:100%;font-size:.56rem;color:var(--text3);display:none"></div>';
   $('qaResults').appendChild(div);
+}
+
+/* QA Edit with visual feedback */
+function qaEdit(idx,btn){
+  btn.textContent='✏️ เปิดแล้ว';
+  btn.style.background='var(--primary)';btn.style.color='#fff';
+  openEditModal(idx);
+  setTimeout(function(){btn.textContent='✏️ แก้';btn.style.background='';btn.style.color=''},1500);
+}
+
+/* QA AI Fix with loading state + inline result */
+function qaFixClick(idx,btn){
+  btn.disabled=true;btn.textContent='⏳ กำลังแก้...';
+  btn.style.opacity='0.7';
+  var msgEl=document.getElementById('qaRowMsg'+idx);
+  if(msgEl){msgEl.style.display='block';msgEl.innerHTML='<span style="color:#9b59b6">⏳ AI กำลังแก้ไขหน้า '+(idx+1)+'...</span>'}
+  qaAIFix(idx).then(function(){
+    btn.textContent='✅ แก้แล้ว';btn.style.background='#27ae60';btn.style.color='#fff';btn.style.opacity='1';
+  }).catch(function(e){
+    btn.textContent='❌ ล้มเหลว';btn.style.opacity='1';
+    if(msgEl){msgEl.innerHTML='<span style="color:#e74c3c">❌ '+ex(e.message).slice(0,150)+'</span>'}
+  }).finally(function(){
+    btn.disabled=false;
+    setTimeout(function(){if(btn.textContent!=='✅ แก้แล้ว'){btn.textContent='🤖 AI แก้';btn.style.background='';btn.style.color='#9b59b6'}},5000);
+  });
 }
 
 async function qaAICheck(text,pageNum,key,prov,tgtL){
@@ -3115,10 +3144,10 @@ async function qaAICheck(text,pageNum,key,prov,tgtL){
 }
 
 async function qaAIFix(idx){
-  if(!translatedPages[idx]){alert('หน้านี้ว่าง');return}
+  if(!translatedPages[idx])throw new Error('หน้านี้ว่าง');
   var key=cleanKey($('ak').value);
   var prov=$('prov').value;
-  if(!key){alert('ใส่ API Key ก่อน');return}
+  if(!key)throw new Error('ใส่ API Key ก่อน');
   var tgtL=getTgtLang();
   var tgtName=LANG_NATIVE[tgtL]||LANG_NAMES[tgtL]||'Thai';
   var text=translatedPages[idx];
@@ -3180,14 +3209,17 @@ async function qaAIFix(idx){
       log('✅ QA Fix หน้า '+(idx+1)+': ไม่มีการแก้ไข','success');
       return;
     }
-    /* Open edit modal with pre-filled AI fix for user to review before saving */
-    _edtIdx=idx;
-    $('edtPageNum').textContent=(idx+1)+' (QA Fix)';
-    $('edtTa').value=result;
-    $('edtOverlay').classList.add('on');
-    $('edtTa').focus();
+    /* Apply fix directly + update row status */
+    translatedPages[idx]=result;
+    saveTrProgress();
+    log('✅ QA Fix หน้า '+(idx+1)+': บันทึกแล้ว','success');
+    var msgEl=document.getElementById('qaRowMsg'+idx);
+    if(msgEl){msgEl.style.display='block';msgEl.innerHTML='<span style="color:#27ae60">✅ แก้ไข '+diffs.length+' จุดแล้ว</span>'}
+    /* Update compare view if visible */
+    if(typeof showComparePage==='function')try{showComparePage(idx)}catch(e){}
   }catch(e){
     log('❌ QA Fix หน้า '+(idx+1)+': '+e.message,'error');
+    throw e; /* re-throw so qaFixClick can catch */
   }
 }
 
