@@ -1,4 +1,4 @@
-const CACHE='catto-v19';
+const CACHE='catto-v20';
 const ASSETS=[
   './',
   './index.html',

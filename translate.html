@@ -568,8 +568,8 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
   <div id="readerBtn" style="display:none;margin-bottom:.4rem">
     <button class="btn btn-o" id="bReader" style="width:100%;justify-content:center;gap:.3rem">📖 อ่าน EPUB ในเบราว์เซอร์</button>
   </div>
-  <!-- QA Scanner Button (independent — shows when translatedPages exist) -->
-  <div id="qaBtn" style="display:none;margin-bottom:.4rem">
+  <!-- QA Scanner Button (always visible) -->
+  <div id="qaBtn" style="margin-bottom:.4rem">
     <button class="btn btn-o" id="bQA" style="width:100%;justify-content:center;gap:.3rem;border-color:#e67e22;color:#e67e22">🔍 QA Scanner — ตรวจคุณภาพ+แก้ชื่อ</button>
   </div>
 
@@ -598,6 +598,12 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
     <div class="card">
       <div class="card-h"><div class="card-n">🔍</div><div class="card-t">QA Scanner — ตรวจคุณภาพหลังแปล</div></div>
       <div style="padding:.5rem .6rem;font-size:.68rem">
+        <div id="qaLoadBox" style="margin-bottom:.5rem;padding:.4rem;border:1px dashed var(--bg3);border-radius:6px;text-align:center">
+          <div style="margin-bottom:.3rem;color:var(--text2)">📂 ยังไม่มีข้อมูลแปลใน memory</div>
+          <button class="btn btn-o" id="qaLoadEpub" style="padding:.3rem .8rem;font-size:.64rem;border-color:#e67e22;color:#e67e22">📂 โหลด EPUB ที่แปลแล้วมาตรวจ</button>
+          <input type="file" id="qaEpubFi" accept=".epub,.zip" hidden>
+          <div id="qaLoadStatus" style="margin-top:.25rem;font-size:.6rem;color:var(--text3)"></div>
+        </div>
         <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.4rem">
           <label style="display:flex;align-items:center;gap:.25rem"><input type="checkbox" id="qaScript" checked style="width:14px;height:14px"> ตรวจอักษรแปลก</label>
           <label style="display:flex;align-items:center;gap:.25rem"><input type="checkbox" id="qaAI" checked style="width:14px;height:14px"> AI ตรวจความลื่นไหล+ชื่อ</label>
@@ -609,9 +615,15 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
           <span id="qaStatus" style="font-size:.6rem;color:var(--text3)"></span>
         </div>
         <div id="qaResults" style="margin-top:.4rem;max-height:50vh;overflow-y:auto"></div>
-        <div id="qaActions" style="display:none;margin-top:.4rem;display:flex;gap:.3rem">
+        <div id="qaActions" style="display:none;margin-top:.4rem;display:flex;gap:.3rem;flex-wrap:wrap">
           <button class="btn btn-go" id="qaApplyAll" style="padding:.3rem .6rem;font-size:.62rem">✅ ใช้ AI แก้ทุกจุดที่เลือก</button>
           <button class="btn btn-o" id="qaRebuild" style="padding:.3rem .6rem;font-size:.62rem">🔄 สร้าง EPUB ใหม่</button>
+        </div>
+        <hr style="border:none;border-top:1px dashed var(--bg3);margin:.6rem 0">
+        <div style="font-size:.64rem;color:var(--text2);margin-bottom:.3rem">🎨 <b>จัดหน้าใหม่</b> — ปรับ format ให้สวยเหมือนหนังสือจริง (หัวบท, ย่อหน้า, scene break, บทพูด)</div>
+        <div style="display:flex;gap:.3rem;align-items:center">
+          <button class="btn btn-o" id="qaReformat" style="padding:.3rem .8rem;font-size:.64rem;border-color:#9b59b6;color:#9b59b6">🎨 จัดหน้าใหม่ + สร้าง EPUB</button>
+          <span id="qaReformatStatus" style="font-size:.6rem;color:var(--text3)"></span>
         </div>
       </div>
     </div>
@@ -964,7 +976,7 @@ function resetBookState(){
   $('tocsec').style.display='none';$('tocl').innerHTML='';
   /* Clear reader + QA */
   $('readerBtn').style.display='none';
-  $('qaBtn').style.display='none';$('qaSec').style.display='none';
+  $('qaSec').style.display='none';
   /* Clear progress */
   $('prg').style.display='none';$('pb').style.width='0%';$('pp').textContent='0%';
   /* Clear stats */
@@ -1807,7 +1819,6 @@ async function startTranslate(){
       if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
       $('readerBtn').style.display='block';
     }
-    if(translatedPages.length)$('qaBtn').style.display='block';
   }
 
   var stopped=!!fatalErr||isCancelled||consErr>=3;
@@ -1894,65 +1905,115 @@ function m2h(md){
   h=h.replace(/^&gt;\s?(.+)$/gm,'<blockquote><p>$1</p></blockquote>');
   h=h.replace(/^[-*]\s+(.+)$/gm,'<li>$1</li>');
   h=h.replace(/((?:<li>.+<\/li>\n?)+)/g,'<ul>$1</ul>');
+
+  /* === Scene break patterns === */
   h=h.replace(/^---+$/gm,'<hr/>');
   h=h.replace(/^\*\*\*+$/gm,'<hr/>');
+  h=h.replace(/^\*\s+\*\s+\*$/gm,'<hr/>');
+  h=h.replace(/^~{3,}$/gm,'<hr/>');
+  h=h.replace(/^[—–]{3,}$/gm,'<hr/>');
+  h=h.replace(/^[=]{3,}$/gm,'<hr/>');
+  h=h.replace(/^[\u2022\u25CB\u25CF\s]{3,}$/gm,'<hr/>');
+  h=h.replace(/^[#\s]{3,}$/gm,'<hr/>');
 
-  /* === ตรวจจับหัวบทภาษาไทย เช่น "บทที่ 1", "ตอนที่ 5" === */
-  h=h.replace(/^(บทที่\s*\d+[^\n]*)$/gm,function(m,t){
+  /* === Chapter heading detection (Thai) === */
+  h=h.replace(/^(บทที่\s*[\d๐-๙]+[^\n]*)$/gm,function(_,t){
     return '<h1 class="chapter-title">'+t.trim()+'</h1>';
   });
-  h=h.replace(/^(ตอนที่\s*\d+[^\n]*)$/gm,function(m,t){
+  h=h.replace(/^(ตอนที่\s*[\d๐-๙]+[^\n]*)$/gm,function(_,t){
     return '<h2 class="section-title">'+t.trim()+'</h2>';
   });
-  /* ตรวจจับหัวบทภาษาอังกฤษ เช่น "Chapter 1", "CHAPTER ONE" */
-  h=h.replace(/^(Chapter\s+[\dA-Za-z]+[^\n]*)$/gim,function(m,t){
-    return '<h1 class="chapter-title">'+t.trim()+'</h1>';
-  });
-  h=h.replace(/^(Part\s+[\dA-Za-z]+[^\n]*)$/gim,function(m,t){
+  h=h.replace(/^(ภาคที่\s*[\d๐-๙]+[^\n]*)$/gm,function(_,t){
     return '<h1 class="part-title">'+t.trim()+'</h1>';
   });
+  /* Chapter heading (English) */
+  h=h.replace(/^(Chapter\s+[\dA-Za-z]+[^\n]*)$/gim,function(_,t){
+    return '<h1 class="chapter-title">'+t.trim()+'</h1>';
+  });
+  h=h.replace(/^(Part\s+[\dA-Za-z]+[^\n]*)$/gim,function(_,t){
+    return '<h1 class="part-title">'+t.trim()+'</h1>';
+  });
+  h=h.replace(/^(Prologue|Epilogue|Preface|Introduction|Afterword|บทนำ|คำนำ|อารัมภบท|บทส่งท้าย|ภาคผนวก)$/gim,function(_,t){
+    return '<h1 class="chapter-title">'+t.trim()+'</h1>';
+  });
+  /* Numbered heading patterns: "1.", "1 -", etc. at start of short lines */
+  h=h.replace(/^(\d{1,3})\.\s+([^\n]{3,50})$/gm,function(_,num,rest){
+    if(rest.match(/[.?!。]$/))return _; /* Ends with period = not a heading */
+    return '<h2 class="section-title">'+num+'. '+rest.trim()+'</h2>';
+  });
 
-  /* === แปลงเป็น paragraphs === */
+  /* === Convert to paragraphs === */
   var blocks=h.split(/\n\n+/);
   var out=[];
   var isFirstAfterHeading=false;
+  var prevWasDialogue=false;
 
   blocks.forEach(function(p){
     p=p.trim();
     if(!p)return;
 
-    /* ข้ามถ้าเป็น HTML element แล้ว */
-    if(/^<(h[1-6]|table|ul|ol|blockquote|hr|div)/.test(p)){
+    /* Already HTML element */
+    if(/^<(h[1-6]|table|ul|ol|blockquote|hr|div|img)/.test(p)){
       out.push(p);
       isFirstAfterHeading=/^<h[1-6]/.test(p);
+      prevWasDialogue=false;
       return;
     }
 
-    /* แยกบรรทัดเดี่ยว (single newline) เป็นย่อหน้าแยก */
+    /* Split single newlines into separate paragraphs */
     var lines=p.split(/\n/);
     lines.forEach(function(line){
       line=line.trim();
       if(!line)return;
 
-      /* ตรวจจับว่าเป็น dialogue (บทพูด) — ขึ้นต้นด้วย " หรือ « หรือ \u201c */
-      var isDialogue=/^[\u201c\u201d\u0022\u00ab\u00bb\u2018\u2019""\u201e\u201f]/.test(line)
+      /* Already HTML from earlier processing */
+      if(/^<(h[1-6]|hr|blockquote|ul|ol|div|img|table)/.test(line)){
+        out.push(line);
+        isFirstAfterHeading=/^<h[1-6]/.test(line); 
+        prevWasDialogue=false;
+        return;
+      }
+
+      /* Dialogue detection — starts with quote marks */
+      var isDialogue=/^[\u201c\u201d\u0022\u00ab\u00bb\u2018\u2019\u201e\u201f""]/.test(line)
                     || /^&quot;/.test(line)
                     || /^["«»'']/.test(line);
 
-      /* ตรวจจับว่าเป็นชื่อบท/ชื่อรอง (บรรทัดสั้นกว่า 60 ตัวอักษร อยู่คนเดียว ไม่มีจุด) */
-      var isSubtitle=lines.length===1 && line.length<60 && !/[.?!。]$/.test(line)
-                    && !/^</.test(line) && /^[A-ZÀ-Ýก-ฮ\d]/.test(line);
+      /* Subtitle detection — more strict:
+         Must be a standalone short line WITHOUT句点/period, NOT a dialogue line,
+         NOT the only line in a multi-paragraph block */
+      var isSubtitle=false;
+      if(!isDialogue && lines.length<=2 && line.length<50 && line.length>2){
+        /* Must NOT end in sentence-ending punctuation */
+        if(!/[.?!。,:;，。：；\u2026]$/.test(line)){
+          /* Must NOT be just a regular short sentence (Thai text with multiple words) */
+          var thaiWordCount=(line.match(/[\u0E00-\u0E7F]+/g)||[]).length;
+          var enWordCount=(line.match(/[A-Za-z]+/g)||[]).length;
+          /* If it's all caps, or has a number pattern, or looks like a title */
+          if(line===line.toUpperCase() && enWordCount>0){
+            isSubtitle=true;
+          }else if(/^(บทที่|ตอนที่|ภาคที่|Chapter|Part|Prologue|Epilogue)/i.test(line)){
+            isSubtitle=true;
+          }else if(thaiWordCount+enWordCount<=6 && !prevWasDialogue){
+            /* Short enough to be a subtitle — but only if not continuation of dialogue */
+            isSubtitle=true;
+          }
+        }
+      }
 
-      if(isSubtitle && !isDialogue){
+      if(isSubtitle){
         out.push('<h2 class="subtitle">'+line+'</h2>');
         isFirstAfterHeading=true;
+        prevWasDialogue=false;
       }else if(isDialogue){
         out.push('<p class="dialogue">'+line+'</p>');
         isFirstAfterHeading=false;
+        prevWasDialogue=true;
       }else{
         var cls=isFirstAfterHeading?' class="first"':'';
         out.push('<p'+cls+'>'+line+'</p>');
         isFirstAfterHeading=false;
+        prevWasDialogue=false;
       }
     });
   });
@@ -2485,7 +2546,6 @@ $('rbBuild').onclick=async function(){
     $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
     if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
     $('readerBtn').style.display='block';
-    $('qaBtn').style.display='block';
     $('recBox').classList.remove('on');
     setSt('✅ กู้คืนสำเร็จ! EPUB + PDF พร้อมดาวน์โหลด','ok');
     log('🎉 กู้คืน: '+translatedPages.filter(function(s){return s&&s.trim()}).length+' หน้า','success');
@@ -2516,7 +2576,7 @@ $('rbResume').onclick=function(){
   $('srcInfo').style.display='block';
   $('srcInfo').innerHTML='📗 กู้คืน: '+srcPages.length+' หน้า · แปลแล้ว '+done+' หน้า · จะแปลต่อจากหน้า '+resumeFrom;
   $('recBox').classList.remove('on');
-  if(done>0){$('qaBtn').style.display='block';if(srcPages.length){$('compareSec').classList.add('on');showComparePage(0)}}
+  if(done>0){if(srcPages.length){$('compareSec').classList.add('on');showComparePage(0)}}
   ck();updateCost();
   setSt('▶️ พร้อมแปลต่อ — กดปุ่ม "เริ่มแปล" ได้เลย','info');
   log('▶️ กู้คืนสถานะ: แปลต่อจากหน้า '+resumeFrom,'success');
@@ -2605,7 +2665,6 @@ $('rbBackup').onclick=async function(){
     $('res').classList.add('on');$('statbar').classList.add('on');updateStats();
     if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
     $('readerBtn').style.display='block';
-    $('qaBtn').style.display='block';
     $('recBox').classList.remove('on');
     var good=translatedPages.filter(function(s){return s&&s.trim()}).length;
     setSt('✅ กู้คืนจาก Backup สำเร็จ! '+good+' หน้า — EPUB + TXT พร้อมดาวน์โหลด','ok');
@@ -2824,9 +2883,98 @@ $('edtSave').onclick=function(){
 $('edtOverlay').onclick=function(e){if(e.target===$('edtOverlay'))closeEditModal()};
 
 /* ═══ QA Scanner ═══ */
-$('bQA').onclick=function(){$('qaSec').style.display='block';$('qaSec').scrollIntoView({behavior:'smooth'})};
+$('bQA').onclick=function(){
+  $('qaSec').style.display='block';
+  /* Show/hide load box depending on whether we have data */
+  $('qaLoadBox').style.display=(translatedPages&&translatedPages.filter(function(s){return s&&s.trim()}).length>0)?'none':'block';
+  $('qaSec').scrollIntoView({behavior:'smooth'});
+};
 var _qaCancel=false;
 var _qaResults=[];
+
+/* Load EPUB file for QA */
+$('qaLoadEpub').onclick=function(){$('qaEpubFi').click()};
+$('qaEpubFi').onchange=async function(){
+  var f=this.files[0];if(!f)return;
+  $('qaLoadStatus').textContent='⏳ กำลังอ่าน '+f.name+'...';
+  try{
+    var buf=await f.arrayBuffer();
+    var zip=await JSZip.loadAsync(buf);
+    /* Build zip index for case-insensitive lookup */
+    var zipIdx={};
+    zip.forEach(function(p){zipIdx[p.toLowerCase()]=p});
+    function fzf(path){
+      if(!path)return null;
+      var ff=zip.file(path);if(ff)return ff;
+      try{path=decodeURIComponent(path)}catch(e){}
+      path=path.replace(/\/+/g,'/').replace(/^\//,'');
+      ff=zip.file(path);if(ff)return ff;
+      var key=path.toLowerCase();
+      if(zipIdx[key])return zip.file(zipIdx[key]);
+      for(var k in zipIdx){if(k.endsWith('/'+key.split('/').pop()))return zip.file(zipIdx[k])}
+      return null;
+    }
+    function rp(base,rel){
+      if(!rel)return '';
+      try{rel=decodeURIComponent(rel)}catch(e){}
+      if(rel.startsWith('/'))return rel.slice(1);
+      var parts=(base+rel).split('/');var res=[];
+      for(var i=0;i<parts.length;i++){if(parts[i]==='..'){if(res.length)res.pop()}else if(parts[i]!=='.'&&parts[i]!=='')res.push(parts[i])}
+      return res.join('/');
+    }
+    /* Find OPF */
+    var opfPath=null;
+    var cf=fzf('META-INF/container.xml');
+    if(cf){try{var cx=await cf.async('string');var cd=new DOMParser().parseFromString(cx,'application/xml');var rf=cd.querySelector('rootfile[full-path]');if(rf)opfPath=rf.getAttribute('full-path')}catch(e){}}
+    if(!opfPath){zip.forEach(function(p){if(p.endsWith('.opf')&&!opfPath)opfPath=p})}
+    var spine=[],items={};
+    if(opfPath){
+      var of=fzf(opfPath);
+      if(of){
+        var ox=await of.async('string');
+        var od=new DOMParser().parseFromString(ox,'application/xml');
+        var opfDir=opfPath.replace(/[^\/]*$/,'');
+        od.querySelectorAll('manifest item').forEach(function(it){
+          var href=it.getAttribute('href');var resolved=rp(opfDir,href);
+          items[it.getAttribute('id')]={href:resolved,mt:it.getAttribute('media-type')||''};
+        });
+        od.querySelectorAll('spine itemref').forEach(function(ref){
+          var id=ref.getAttribute('idref');
+          if(items[id]&&items[id].mt){var m=items[id].mt.toLowerCase();if(m.indexOf('xhtml')>=0||m.indexOf('html')>=0)spine.push(items[id].href)}
+        });
+        /* Extract metadata for display */
+        var gm=function(tag){var el=od.querySelector(tag);return el?el.textContent.trim():''};
+        var mt=gm('title');if(mt)$('qaLoadStatus').textContent='📗 '+mt;
+      }
+    }
+    if(!spine.length){zip.forEach(function(p){if(/\.(xhtml|html|htm)$/i.test(p)&&!/toc\./i.test(p))spine.push(p)});spine.sort()}
+    /* Read pages into translatedPages */
+    var pages=[];
+    for(var si=0;si<spine.length;si++){
+      var xf=fzf(spine[si]);if(!xf)continue;
+      var xhtml=await xf.async('string');
+      var bodyM=xhtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if(bodyM){
+        var txt=bodyM[1].replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n\n').replace(/<\/div>/gi,'\n').replace(/<\/h[1-6]>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(n)}).replace(/\n\s*\n\s*\n/g,'\n\n').trim();
+        if(txt.length>5)pages.push(txt);
+      }
+    }
+    if(!pages.length)throw new Error('ไม่พบข้อความใน EPUB');
+    translatedPages=pages;
+    /* Also put into srcPages if empty so Compare view works */
+    if(!srcPages.length)srcPages=pages.slice();
+    $('qaLoadStatus').innerHTML='✅ โหลดสำเร็จ: <b>'+pages.length+'</b> หน้า — พร้อมสแกน';
+    $('qaLoadBox').style.display='none';
+    $('qaFrom').value='1';$('qaTo').value=pages.length;
+    log('📂 QA: โหลด EPUB '+f.name+' — '+pages.length+' หน้า','success');
+    /* Show compare if available */
+    if(srcPages.length&&translatedPages.length){$('compareSec').classList.add('on');showComparePage(0)}
+  }catch(e){
+    $('qaLoadStatus').textContent='❌ '+e.message;
+    log('❌ QA EPUB load: '+e.message,'error');
+  }
+  this.value='';
+};
 
 $('qaStop').onclick=function(){_qaCancel=true;$('qaStop').disabled=true};
 
@@ -3075,6 +3223,48 @@ $('qaRebuild').onclick=async function(){
     setSt('✅ EPUB+TXT ใหม่พร้อมดาวน์โหลด','ok');
     log('✅ QA Rebuild: สร้าง EPUB ใหม่สำเร็จ','success');
   }catch(e){setSt('❌ '+e.message,'err');log('❌ QA Rebuild: '+e.message,'error')}
+};
+
+/* ═══ Reformat — จัดหน้าใหม่ + สร้าง EPUB ═══ */
+$('qaReformat').onclick=async function(){
+  if(!translatedPages||!translatedPages.length){alert('ยังไม่มีข้อมูลแปล — กดโหลด EPUB ก่อน');return}
+  $('qaReformatStatus').textContent='⏳ กำลังจัดหน้าใหม่...';
+  try{
+    /* Clean up common formatting issues in translated text before converting to HTML */
+    for(var i=0;i<translatedPages.length;i++){
+      if(!translatedPages[i]||!translatedPages[i].trim())continue;
+      var t=translatedPages[i];
+      /* Remove excess blank lines */
+      t=t.replace(/\n{4,}/g,'\n\n\n');
+      /* Normalize weird spaces */
+      t=t.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g,' ');
+      /* Remove trailing spaces per line */
+      t=t.replace(/[ \t]+$/gm,'');
+      /* Fix broken paragraphs (line < 40 chars followed by line starting lowercase or Thai) */
+      t=t.replace(/(.{5,39})\n(?=[ก-ฮa-z])/g,'$1 ');
+      /* Ensure scene breaks are on their own line */
+      t=t.replace(/([^\n])(---+|\*\*\*+|\*\s+\*\s+\*)([^\n])/g,'$1\n\n$2\n\n$3');
+      translatedPages[i]=t;
+    }
+    /* Rebuild EPUB (m2h will apply the improved formatting) */
+    chaps=detectChapters(translatedPages);rtoc();
+    var eb=await buildEpub(translatedPages,chaps);
+    var allText=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+    var txtBlob=new Blob(['\ufeff'+allText+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
+    var base=($('mt').value.trim()||'translated')+getTgtSuffix();
+    $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
+    $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
+    $('dp').style.display='';$('res').classList.add('on');
+    $('readerBtn').style.display='block';
+    saveTrProgress();
+    $('qaReformatStatus').textContent='✅ จัดหน้าใหม่สำเร็จ — EPUB + TXT พร้อมดาวน์โหลด';
+    setSt('✅ จัดหน้าใหม่สำเร็จ! EPUB + TXT พร้อมดาวน์โหลด','ok');
+    log('🎨 Reformat: จัดหน้าใหม่ + สร้าง EPUB สำเร็จ — '+translatedPages.filter(function(s){return s&&s.trim()}).length+' หน้า','success');
+  }catch(e){
+    $('qaReformatStatus').textContent='❌ '+e.message;
+    setSt('❌ '+e.message,'err');
+    log('❌ Reformat: '+e.message,'error');
+  }
 };
 
 /* ═══ EPUB Reader JS ═══ */
