@@ -653,7 +653,7 @@ function reportBug(){
   window.open('https://github.com/cattodata/cattoepub/issues/new?title='+title+'&body='+body+'&labels=bug','_blank');
 }
 
-var APP_VERSION='v2.5';
+var APP_VERSION='v2.6';
 var GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite'];
 function getGeminiModel(){var s=$('geminiModel');return s?s.value:'gemini-2.0-flash'}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){console.warn('pdf.js not loaded yet:',e)}
@@ -662,6 +662,25 @@ let pdfDoc=null,srcFile=null,srcType='',srcPages=[],translatedPages=[],isCancell
 var tokenUsage={prompt:0,completion:0,total:0},stats={total:0,done:0,skipped:0,ocr:0};
 var _dir='en2th'; /* legacy compat — now derived from dropdowns */
 var startTime=0;
+
+/* ═══ Wake Lock — ป้องกันคอมสลีประหว่างแปล ═══ */
+var _wakeLock=null;
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  try{_wakeLock=await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release',function(){log('💤 Wake Lock หลุด — ถ้าคอมสลีป จะแปลต่อเมื่อกลับมา','purple')});
+    log('☕ Wake Lock เปิด — คอมจะไม่สลีประหว่างแปล','success');
+  }catch(e){log('⚠️ Wake Lock ไม่สามารถเปิดได้: '+e.message,'error')}
+}
+async function releaseWakeLock(){
+  if(_wakeLock){try{await _wakeLock.release()}catch(e){}_wakeLock=null}
+}
+/* Re-acquire wake lock when tab becomes visible again (after sleep/tab switch) */
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&isProc&&!isCancelled){requestWakeLock()}
+});
+/* Sleep detection — if gap > 30s between pages, computer likely slept */
+var _lastPageTime=0;
 var LANG_NAMES={en:'English',th:'Thai',zh:'Chinese',ja:'Japanese',ko:'Korean',fr:'French',de:'German',es:'Spanish',pt:'Portuguese',ru:'Russian',ar:'Arabic',vi:'Vietnamese',id:'Indonesian'};
 var LANG_NATIVE={en:'English',th:'ภาษาไทย',zh:'中文',ja:'日本語',ko:'한국어',fr:'Français',de:'Deutsch',es:'Español',pt:'Português',ru:'Русский',ar:'العربية',vi:'Tiếng Việt',id:'Bahasa Indonesia'};
 var LANG_CODES={en:'en',th:'th',zh:'zh',ja:'ja',ko:'ko',fr:'fr',de:'de',es:'es',pt:'pt',ru:'ru',ar:'ar',vi:'vi',id:'id'};
@@ -1441,7 +1460,8 @@ $('bst').onclick=()=>{isCancelled=true;$('bst').disabled=true;$('bst').textConte
 
 async function startTranslate(){
   if(isProc)return;isProc=true;isCancelled=false;
-  startTime=Date.now();
+  startTime=Date.now();_lastPageTime=Date.now();
+  await requestWakeLock();
   var key=cleanKey($('ak').value);
   var style=$('style').value;
   var customPrompt=$('customPrompt').value.trim();
@@ -1496,6 +1516,14 @@ async function startTranslate(){
 
     var pageText=pages[i];
     var pageNum=s0+i+1;
+
+    /* Sleep detection: if > 30s gap, computer probably slept */
+    var now=Date.now();
+    if(_lastPageTime&&(now-_lastPageTime)>30000&&stats.done>0){
+      log('💤 ตรวจพบว่าคอมอาจสลีปไป ('+(Math.round((now-_lastPageTime)/1000))+'s) — แปลต่ออัตโนมัติ','purple');
+      await requestWakeLock(); /* re-acquire */
+    }
+    _lastPageTime=now;
 
     $('pt').textContent='🌐 หน้า '+pageNum+'/'+end;
     $('pm').textContent='⏳ กำลังแปลหน้า '+pageNum+'...';
@@ -1706,6 +1734,7 @@ async function startTranslate(){
     $('sp').value=lastDone+1;
   }
 
+  await releaseWakeLock();
   $('bgo').disabled=false;$('bst').disabled=true;$('bst').textContent='⏸ พักก่อน';isProc=false;
 }
 
