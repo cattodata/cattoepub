@@ -1483,7 +1483,7 @@ async function reviewChunk(original,translated,reviewKey,reviewProvider){
   /* Gemini: maxOutputTokens = output เท่านั้น */
   var maxTokGemini=Math.max(8192,Math.ceil(translated.length/2)+2048);
   /* Typhoon/OpenAI: max_tokens = total context (prompt+output) → ต้องรวม prompt ด้วย */
-  var maxTokOAI=Math.max(16384,Math.ceil(charLen/2)+4096);
+  var maxTokOAI=Math.max(16384,charLen+4096);
   var temp=0.15; /* low temperature for review — เน้นความถูกต้อง */
 
   if(reviewProvider==='gemini'){
@@ -2779,7 +2779,7 @@ async function scanNames(){
       }
       if(!scanOk)throw new Error('⚠️ Gemini quota หมดทุก model — ลองเปลี่ยนเป็น Gemini Model อื่น หรือรอ 1 นาทีแล้วลองใหม่\n\nhttps://ai.google.dev/gemini-api/docs/rate-limits');
     }else{
-      var scanMaxTok=Math.max(4096,Math.ceil(scanPrompt.length/2)+2048);
+      var scanMaxTok=Math.max(8192,scanPrompt.length+2048);
       var r=await fetch("https://api.opentyphoon.ai/v1/chat/completions",{
         method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
         body:JSON.stringify({model:"typhoon-v2.5-30b-a3b-instruct",messages:[{role:"user",content:scanPrompt}],max_tokens:scanMaxTok,temperature:0.1})
@@ -3137,7 +3137,7 @@ async function qaAICheck(text,pageNum,key,prov,tgtL){
     var json=await r.json();
     result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'{}';
   }else{
-    var qaMaxTok=Math.max(4096,Math.ceil(prompt.length/2)+2048);
+    var qaMaxTok=Math.max(8192,prompt.length+2048);
     var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
       method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น'},{role:'user',content:prompt}],max_tokens:qaMaxTok,temperature:0.1})
@@ -3187,7 +3187,7 @@ async function qaAIFix(idx){
       var json=await r.json();
       result=(json.candidates&&json.candidates[0]&&json.candidates[0].content&&json.candidates[0].content.parts)?json.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):'';
     }else{
-      var fixMaxTok=Math.max(8192,Math.ceil(prompt.length/2)+4096);
+      var fixMaxTok=Math.max(16384,prompt.length+4096);
       var r=await fetch('https://api.opentyphoon.ai/v1/chat/completions',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
         body:JSON.stringify({model:'typhoon-v2.5-30b-a3b-instruct',messages:[{role:'system',content:'แก้ไขข้อความให้สละสลวย ทับศัพท์ชื่อเฉพาะ ส่งเฉพาะข้อความที่แก้ ห้ามมีหมายเหตุ'},{role:'user',content:prompt}],max_tokens:fixMaxTok,temperature:0.3})
