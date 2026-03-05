@@ -615,9 +615,11 @@ textarea.fi{resize:vertical;min-height:52px;line-height:1.5}
           <span id="qaStatus" style="font-size:.6rem;color:var(--text3)"></span>
         </div>
         <div id="qaResults" style="margin-top:.4rem;max-height:50vh;overflow-y:auto"></div>
-        <div id="qaActions" style="display:none;margin-top:.4rem;gap:.3rem;flex-wrap:wrap">
-          <button class="btn btn-go" id="qaApplyAll" style="padding:.3rem .6rem;font-size:.62rem">✅ ใช้ AI แก้ทุกจุดที่เลือก</button>
-          <button class="btn btn-o" id="qaRebuild" style="padding:.3rem .6rem;font-size:.62rem">🔄 สร้าง EPUB ใหม่</button>
+        <div id="qaActions" style="display:none;margin-top:.5rem;gap:.4rem;flex-wrap:wrap;padding:.4rem;border:1px solid var(--bg3);border-radius:6px;background:var(--bg2)">
+          <div style="width:100%;font-size:.62rem;color:var(--text2);margin-bottom:.2rem">💡 สแกนเสร็จแล้ว เลือกสิ่งที่ต้องการทำ:</div>
+          <button class="btn btn-go" id="qaApplyAll" style="padding:.4rem .8rem;font-size:.66rem;width:100%">🤖 AI แก้ทั้งหมด + สร้าง EPUB ใหม่</button>
+          <div id="qaApplyStatus" style="width:100%;font-size:.58rem;color:var(--text3);display:none"></div>
+          <button class="btn btn-o" id="qaRebuild" style="padding:.3rem .6rem;font-size:.62rem">🔄 สร้าง EPUB ใหม่ (ไม่แก้ข้อความ)</button>
         </div>
         <hr style="border:none;border-top:1px dashed var(--bg3);margin:.6rem 0">
         <div style="font-size:.64rem;color:var(--text2);margin-bottom:.3rem">🎨 <b>จัดหน้าใหม่</b> — ปรับ format ให้สวยเหมือนหนังสือจริง (หัวบท, ย่อหน้า, scene break, บทพูด)</div>
@@ -3054,7 +3056,13 @@ $('qaStart').onclick=async function(){
   $('qaStart').disabled=false;$('qaStop').disabled=true;
   var doneMsg=_qaCancel?'⏸ หยุด':'✅ สแกนเสร็จ';
   $('qaStatus').textContent=doneMsg+' — พบปัญหา '+totalIssues+' หน้า';
-  if(totalIssues>0)$('qaActions').style.display='flex';
+  if(totalIssues>0){
+    $('qaActions').style.display='flex';
+    /* Count unique pages */
+    var uniquePages={};_qaResults.forEach(function(r){uniquePages[r.idx]=true});
+    var cnt=Object.keys(uniquePages).length;
+    $('qaApplyAll').textContent='🤖 AI แก้ทั้งหมด '+cnt+' หน้า + สร้าง EPUB ใหม่';
+  }
   log('🔍 QA Scanner: '+doneMsg+' '+totalIssues+' หน้ามีปัญหา','purple');
 };
 
@@ -3224,27 +3232,77 @@ async function qaAIFix(idx){
 }
 
 $('qaApplyAll').onclick=async function(){
-  var toFix=_qaResults.filter(function(r){return r.suggestion&&r.suggestion.trim()});
-  if(!toFix.length){alert('ไม่มีหน้าที่ AI เสนอแก้ไข');return}
-  if(!confirm('จะใช้ AI แก้ '+toFix.length+' หน้า ต้องการดำเนินการ?'))return;
-  var fixed=0;
-  for(var i=0;i<toFix.length;i++){
-    var r=toFix[i];
-    var clean=cleanTranslation(r.suggestion);
-    var orig=translatedPages[r.idx];
-    if(!orig)continue;
-    if(clean.length<orig.length*0.4||clean.length>orig.length*2.5)continue;
-    var scriptErr=detectForeignScript(clean,srcPages[r.idx]||'',getTgtLang());
-    if(scriptErr)continue;
-    translatedPages[r.idx]=clean;fixed++;
+  /* Collect ALL pages with any issues */
+  var pageIdxs=[];
+  var seen={};
+  _qaResults.forEach(function(r){
+    if(!seen[r.idx]){seen[r.idx]=true;pageIdxs.push(r.idx)}
+  });
+  if(!pageIdxs.length){alert('ไม่มีหน้าที่ต้องแก้');return}
+  var key=cleanKey($('ak').value);
+  if(!key){alert('ใส่ API Key ก่อนเพื่อใช้ AI แก้');return}
+  if(!confirm('🤖 AI จะแก้ทั้งหมด '+pageIdxs.length+' หน้า\n(ทั้งชื่ออังกฤษ + คุณภาพต่ำ)\nแล้วสร้าง EPUB ใหม่อัตโนมัติ'))return;
+
+  var btn=$('qaApplyAll');
+  btn.disabled=true;
+  var statusEl=$('qaApplyStatus');
+  statusEl.style.display='block';
+  var fixed=0,failed=0;
+
+  for(var i=0;i<pageIdxs.length;i++){
+    var idx=pageIdxs[i];
+    btn.textContent='⏳ แก้หน้า '+(idx+1)+' ('+(i+1)+'/'+pageIdxs.length+')';
+    statusEl.innerHTML='⏳ <b>'+(i+1)+'</b>/'+pageIdxs.length+' หน้า — แก้แล้ว '+fixed+' | ล้มเหลว '+failed;
+    try{
+      await qaAIFix(idx);
+      fixed++;
+      /* Update row visual */
+      var rowMsg=document.getElementById('qaRowMsg'+idx);
+      if(rowMsg){rowMsg.style.display='block';rowMsg.innerHTML='<span style="color:#27ae60">✅ AI แก้แล้ว</span>'}
+      var fixBtn=document.getElementById('qaFixBtn'+idx);
+      if(fixBtn){fixBtn.textContent='✅ แก้แล้ว';fixBtn.style.background='#27ae60';fixBtn.style.color='#fff'}
+    }catch(e){
+      failed++;
+      var rowMsg=document.getElementById('qaRowMsg'+idx);
+      if(rowMsg){rowMsg.style.display='block';rowMsg.innerHTML='<span style="color:#e74c3c">❌ '+ex(e.message).slice(0,100)+'</span>'}
+    }
   }
+
   saveTrProgress();
-  log('✅ QA Apply All: แก้ '+fixed+'/'+toFix.length+' หน้า','success');
-  setSt('✅ QA แก้แล้ว '+fixed+' หน้า','ok');
+  statusEl.innerHTML='✅ <b>แก้เสร็จ '+fixed+'/'+pageIdxs.length+' หน้า</b>'+(failed?' (ล้มเหลว '+failed+')':'')+'  — กำลังสร้าง EPUB...';
+  log('✅ QA Apply All: AI แก้ '+fixed+'/'+pageIdxs.length+' หน้า','success');
+
+  /* Auto rebuild EPUB */
+  try{
+    btn.textContent='🔄 กำลังสร้าง EPUB...';
+    chaps=detectChapters(translatedPages);rtoc();
+    var eb=await buildEpub(translatedPages,chaps);
+    var allText=translatedPages.filter(function(s){return s&&s.trim()}).join('\n\n--- Page Break ---\n\n');
+    var txtBlob=new Blob(['\ufeff'+allText+WATERMARK_TXT],{type:'text/plain;charset=utf-8'});
+    var base=($('mt').value.trim()||'translated')+getTgtSuffix();
+    $('de').href=URL.createObjectURL(eb);$('de').download=base+'.epub';$('es').textContent=fs(eb.size);
+    $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
+    $('dp').style.display='';$('res').classList.add('on');
+    saveTrProgress();
+    btn.textContent='✅ แก้+สร้าง EPUB เสร็จ!';
+    btn.style.background='#27ae60';
+    statusEl.innerHTML='✅ <b>แก้ '+fixed+' หน้า + EPUB พร้อมดาวน์โหลด</b> ⬆️ เลื่อนขึ้นไปดูปุ่มดาวน์โหลด';
+    setSt('✅ AI แก้ '+fixed+' หน้า + EPUB พร้อมดาวน์โหลด','ok');
+    log('✅ QA: สร้าง EPUB ใหม่สำเร็จ','success');
+    /* Scroll to download section */
+    $('res').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){
+    btn.textContent='✅ แก้เสร็จ — กดสร้าง EPUB เอง';
+    statusEl.innerHTML='✅ แก้แล้ว '+fixed+' หน้า — กด "🔄 สร้าง EPUB" อีกที';
+    log('❌ EPUB rebuild: '+e.message,'error');
+  }
+  btn.disabled=false;
 };
 
 $('qaRebuild').onclick=async function(){
   if(!translatedPages.length)return;
+  var btn=$('qaRebuild');
+  btn.disabled=true;btn.textContent='⏳ กำลังสร้าง...';
   try{
     setSt('🔄 กำลังสร้าง EPUB ใหม่...','info');
     chaps=detectChapters(translatedPages);rtoc();
@@ -3256,9 +3314,18 @@ $('qaRebuild').onclick=async function(){
     $('dt').href=URL.createObjectURL(txtBlob);$('dt').download=base+'.txt';$('ts').textContent=fs(txtBlob.size);
     $('dp').style.display='';$('res').classList.add('on');
     saveTrProgress();
+    btn.textContent='✅ EPUB พร้อมโหลด!';
+    btn.style.background='#27ae60';btn.style.color='#fff';
     setSt('✅ EPUB+TXT ใหม่พร้อมดาวน์โหลด','ok');
     log('✅ QA Rebuild: สร้าง EPUB ใหม่สำเร็จ','success');
-  }catch(e){setSt('❌ '+e.message,'err');log('❌ QA Rebuild: '+e.message,'error')}
+    $('res').scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(function(){btn.textContent='🔄 สร้าง EPUB ใหม่ (ไม่แก้ข้อความ)';btn.style.background='';btn.style.color=''},5000);
+  }catch(e){
+    btn.textContent='❌ ล้มเหลว';
+    setSt('❌ '+e.message,'err');log('❌ QA Rebuild: '+e.message,'error');
+    setTimeout(function(){btn.textContent='🔄 สร้าง EPUB ใหม่ (ไม่แก้ข้อความ)';btn.style.background='';btn.style.color=''},5000);
+  }
+  btn.disabled=false;
 };
 
 /* ═══ Reformat — จัดหน้าใหม่ + สร้าง EPUB ═══ */
